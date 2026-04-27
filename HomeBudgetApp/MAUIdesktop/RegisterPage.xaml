@@ -1,0 +1,24 @@
+﻿<ContentPage
+    x:Class="MAUIdesktop.RegisterPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <VerticalStackLayout Padding="30" Spacing="15">
+
+        <Label Text="Register"
+               FontSize="28"
+               HorizontalOptions="Center"/>
+
+        <Entry x:Name="EmailEntry" Placeholder="Email"/>
+        <Entry x:Name="NameEntry" Placeholder="Name"/>
+        <Entry x:Name="PasswordEntry" Placeholder="Password" IsPassword="True"/>
+
+        <Button Text="Register" Clicked="OnRegisterClicked"/>
+        <Button Text="Back to Login" Clicked="OnBackClicked"/>
+
+        <Label x:Name="MessageLabel"
+               TextColor="Red"
+               HorizontalOptions="Center"/>
+
+    </VerticalStackLayout>
+</ContentPage>

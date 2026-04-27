@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MAUIdesktop.MainPage">
+
+    <Grid Padding="32" RowDefinitions="Auto,*,Auto">
+        <VerticalStackLayout Spacing="8">
+            <Label
+                Text="Home Budget"
+                Style="{StaticResource Headline}"
+                SemanticProperties.HeadingLevel="Level1" />
+
+            <Label
+                Text="Welcome to your main dashboard"
+                Style="{StaticResource SubHeadline}"
+                SemanticProperties.HeadingLevel="Level2" />
+        </VerticalStackLayout>
+
+        <VerticalStackLayout
+            Grid.Row="1"
+            Spacing="16"
+            VerticalOptions="Center">
+            <Label
+                Text="You are logged in successfully."
+                FontSize="18"
+                HorizontalOptions="Center" />
+
+            <Label
+                Text="Budget features can be added here next."
+                FontSize="14"
+                HorizontalOptions="Center"
+                TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+        </VerticalStackLayout>
+
+        <Button
+            Grid.Row="2"
+            Text="Logout"
+            Clicked="OnLogoutClicked"
+            HorizontalOptions="Fill" />
+    </Grid>
+
+</ContentPage>
