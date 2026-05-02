@@ -4,7 +4,7 @@ namespace MAUIdesktop;
 
 public partial class RegisterPage : ContentPage
 {
-    private readonly DatabaseService _db;
+    private readonly DatabaseRepository _db;
 
     public RegisterPage()
     {
@@ -41,13 +41,13 @@ public partial class RegisterPage : ContentPage
             return;
         }
 
-        if (_db.GetUser(email) != null)
+        if (_db.GetUserByEmail(email) != null)
         {
             MessageLabel.Text = "User already exists";
             return;
         }
 
-        _db.CreateUser(email, name, password);
+        _db.AddUser(email, name, password);
 
         MessageLabel.TextColor = Colors.Green;
         MessageLabel.Text = "Registered successfully";

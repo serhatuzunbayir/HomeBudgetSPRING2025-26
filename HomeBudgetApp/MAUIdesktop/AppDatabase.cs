@@ -4,9 +4,9 @@ namespace MAUIdesktop;
 
 public static class AppDatabase
 {
-    private static DatabaseService? _database;
+    private static DatabaseRepository? _database;
 
-    public static DatabaseService Instance
+    public static DatabaseRepository Instance
     {
         get
         {
@@ -15,9 +15,8 @@ public static class AppDatabase
                 return _database;
             }
 
-            _database = new DatabaseService(SharedDatabasePath.GetPath());
-            _database.Initialize();
-
+            _database = new DatabaseRepository(SharedDatabasePath.GetPath());
+         
             return _database;
         }
     }

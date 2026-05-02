@@ -4,7 +4,7 @@ namespace MAUIdesktop;
 
 public partial class LoginPage : ContentPage
 {
-    private readonly DatabaseService _db;
+    private readonly DatabaseRepository _db;
 
     public LoginPage()
     {
@@ -26,7 +26,7 @@ public partial class LoginPage : ContentPage
             return;
         }
 
-        var user = _db.GetUser(email);
+        var user = _db.GetUserByEmail(email);
 
         if (user == null)
         {
