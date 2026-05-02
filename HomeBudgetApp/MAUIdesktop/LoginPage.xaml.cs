@@ -43,6 +43,8 @@ public partial class LoginPage : ContentPage
         MessageLabel.TextColor = Colors.Green;
         MessageLabel.Text = $"Welcome {user.Name}";
 
+        AppSession.SignIn(user);
+
         await Shell.Current.GoToAsync("//MainPage");
     }
 

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MAUIdesktop.FamilyPage"
+             Title="Family">
+
+    <Grid Padding="28" RowDefinitions="Auto,*">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Family budget" FontSize="26" FontAttributes="Bold" />
+                <Label Text="Family features will live here separately from your personal budget."
+                       FontSize="14"
+                       TextColor="{AppThemeBinding Light=#626262, Dark=#C7C7C7}" />
+            </VerticalStackLayout>
+
+            <Button Grid.Column="1"
+                    Text="Personal page"
+                    Clicked="OnPersonalClicked" />
+        </Grid>
+
+        <Border Grid.Row="1"
+                Margin="0,24,0,0"
+                Padding="18"
+                Stroke="#DADCE0"
+                StrokeThickness="1"
+                BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1F1F1F}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="8" />
+            </Border.StrokeShape>
+            <Label Text="No family workspace is connected yet."
+                   FontSize="16"
+                   VerticalOptions="Center"
+                   HorizontalOptions="Center" />
+        </Border>
+    </Grid>
+</ContentPage>

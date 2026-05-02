@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MAUIdesktop.ProfilePage"
+             Title="Profile">
+
+    <ScrollView>
+        <Grid Padding="28" RowDefinitions="Auto,Auto" RowSpacing="20" MaximumWidthRequest="720">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Profile" FontSize="26" FontAttributes="Bold" />
+                <Label Text="View your account details and update your name or password."
+                       FontSize="14"
+                       TextColor="{AppThemeBinding Light=#626262, Dark=#C7C7C7}" />
+            </VerticalStackLayout>
+
+            <Border Grid.Row="1"
+                    Stroke="#DADCE0"
+                    StrokeThickness="1"
+                    Padding="18"
+                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1F1F1F}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="14">
+                    <Label Text="Account information" FontSize="18" FontAttributes="Bold" />
+
+                    <Label Text="Email" FontSize="13" TextColor="#6B7280" />
+                    <Label x:Name="EmailLabel" FontSize="16" />
+
+                    <Label Text="Name" FontSize="13" TextColor="#6B7280" />
+                    <Entry x:Name="NameEntry" Placeholder="Name" />
+
+                    <Label Text="New password" FontSize="13" TextColor="#6B7280" />
+                    <Entry x:Name="PasswordEntry" Placeholder="Leave unchanged to keep current password" IsPassword="True" />
+
+                    <Label x:Name="MessageLabel" />
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="Back" Clicked="OnBackClicked" BackgroundColor="{AppThemeBinding Light=#F1F3F4, Dark=#2D2D2D}" TextColor="{AppThemeBinding Light=#202124, Dark=#F7F7F7}" />
+                        <Button Grid.Column="1" Text="Save changes" Clicked="OnSaveClicked" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </ScrollView>
+</ContentPage>
