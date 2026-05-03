@@ -196,16 +196,17 @@ public sealed class CategoryCardViewModel
     {
         CategoryId = category.CategoryId;
         Name = category.Name;
-        Budget = category.Budget;
+        RemainingBudget = category.RemainingBudget;
         Expenses = new ObservableCollection<ExpenseRowViewModel>(
             expenses.OrderByDescending(expense => expense.Date).Select(expense => new ExpenseRowViewModel(expense)));
     }
 
     public int CategoryId { get; }
     public string Name { get; }
-    public double Budget { get; }
+    public double RemainingBudget { get; }
+    public double Budget => RemainingBudget + Spent;
     public double Spent => Expenses.Sum(expense => expense.Amount);
-    public double Remaining => Budget - Spent;
+    public double Remaining => RemainingBudget;
     public double SpentProgress => Budget <= 0 ? 0 : Math.Min(1, Spent / Budget);
     public string BudgetDisplay => $"Budget: {Budget:C}";
     public string SpentDisplay => $"Spent: {Spent:C}";

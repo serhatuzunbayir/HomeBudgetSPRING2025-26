@@ -177,6 +177,46 @@ public class DatabaseRepository
             throw new InvalidOperationException("The family category must belong to the same family as the expense.");
     }
 
+    private static void ChangeCategoryBudget(SqliteConnection connection, SqliteTransaction transaction, int userId, int categoryId, double amount)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = @"
+        UPDATE Categories
+        SET budget = budget + $amount
+        WHERE userId = $userId
+          AND categoryId = $categoryId;
+        ";
+
+        command.Parameters.AddWithValue("$userId", userId);
+        command.Parameters.AddWithValue("$categoryId", categoryId);
+        command.Parameters.AddWithValue("$amount", amount);
+
+        command.ExecuteNonQuery();
+    }
+
+    private static (int CategoryId, double Amount)? GetExpenseBudgetChange(SqliteConnection connection, SqliteTransaction transaction, int expenseId, int userId)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = @"
+        SELECT categoryId, amount
+        FROM Expenses
+        WHERE expenseId = $expenseId
+          AND userId = $userId;
+        ";
+
+        command.Parameters.AddWithValue("$expenseId", expenseId);
+        command.Parameters.AddWithValue("$userId", userId);
+
+        using var reader = command.ExecuteReader();
+
+        if (!reader.Read())
+            return null;
+
+        return (reader.GetInt32(0), reader.GetDouble(1));
+    }
+
     // ---------------- USERS ----------------
 
     public int AddUser(string email, string name, string password)
@@ -348,22 +388,34 @@ public class DatabaseRepository
     public int AddExpense(int userId, int categoryId, string description, double amount, string date)
     {
         using var connection = GetConnection();
-        using var command = connection.CreateCommand();
+        using var transaction = connection.BeginTransaction();
 
-        command.CommandText = @"
-        INSERT INTO Expenses (userId, categoryId, description, amount, date)
-        VALUES ($userId, $categoryId, $description, $amount, $date);
+        int expenseId;
 
-        SELECT last_insert_rowid();
-        ";
+        using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = @"
+            INSERT INTO Expenses (userId, categoryId, description, amount, date)
+            VALUES ($userId, $categoryId, $description, $amount, $date);
 
-        command.Parameters.AddWithValue("$userId", userId);
-        command.Parameters.AddWithValue("$categoryId", categoryId);
-        command.Parameters.AddWithValue("$description", description);
-        command.Parameters.AddWithValue("$amount", amount);
-        command.Parameters.AddWithValue("$date", date);
+            SELECT last_insert_rowid();
+            ";
 
-        return Convert.ToInt32(command.ExecuteScalar());
+            command.Parameters.AddWithValue("$userId", userId);
+            command.Parameters.AddWithValue("$categoryId", categoryId);
+            command.Parameters.AddWithValue("$description", description);
+            command.Parameters.AddWithValue("$amount", amount);
+            command.Parameters.AddWithValue("$date", date);
+
+            expenseId = Convert.ToInt32(command.ExecuteScalar());
+        }
+
+        ChangeCategoryBudget(connection, transaction, userId, categoryId, -amount);
+
+        transaction.Commit();
+
+        return expenseId;
     }
 
     public Expense? GetExpense(int expenseId, int userId)
@@ -434,43 +486,66 @@ public class DatabaseRepository
     public void UpdateExpense(int expenseId, int userId, int categoryId, string description, double amount, string date)
     {
         using var connection = GetConnection();
-        using var command = connection.CreateCommand();
+        using var transaction = connection.BeginTransaction();
 
-        command.CommandText = @"
-        UPDATE Expenses
-        SET categoryId = $categoryId,
-            description = $description,
-            amount = $amount,
-            date = $date
-        WHERE expenseId = $expenseId
-          AND userId = $userId;
-        ";
+        var oldExpense = GetExpenseBudgetChange(connection, transaction, expenseId, userId);
 
-        command.Parameters.AddWithValue("$expenseId", expenseId);
-        command.Parameters.AddWithValue("$userId", userId);
-        command.Parameters.AddWithValue("$categoryId", categoryId);
-        command.Parameters.AddWithValue("$description", description);
-        command.Parameters.AddWithValue("$amount", amount);
-        command.Parameters.AddWithValue("$date", date);
+        using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = @"
+            UPDATE Expenses
+            SET categoryId = $categoryId,
+                description = $description,
+                amount = $amount,
+                date = $date
+            WHERE expenseId = $expenseId
+              AND userId = $userId;
+            ";
 
-        command.ExecuteNonQuery();
+            command.Parameters.AddWithValue("$expenseId", expenseId);
+            command.Parameters.AddWithValue("$userId", userId);
+            command.Parameters.AddWithValue("$categoryId", categoryId);
+            command.Parameters.AddWithValue("$description", description);
+            command.Parameters.AddWithValue("$amount", amount);
+            command.Parameters.AddWithValue("$date", date);
+
+            if (command.ExecuteNonQuery() > 0 && oldExpense is not null)
+            {
+                ChangeCategoryBudget(connection, transaction, userId, oldExpense.Value.CategoryId, oldExpense.Value.Amount);
+                ChangeCategoryBudget(connection, transaction, userId, categoryId, -amount);
+            }
+        }
+
+        transaction.Commit();
     }
 
     public void DeleteExpense(int expenseId, int userId)
     {
         using var connection = GetConnection();
-        using var command = connection.CreateCommand();
+        using var transaction = connection.BeginTransaction();
 
-        command.CommandText = @"
-        DELETE FROM Expenses
-        WHERE expenseId = $expenseId
-          AND userId = $userId;
-        ";
+        var oldExpense = GetExpenseBudgetChange(connection, transaction, expenseId, userId);
 
-        command.Parameters.AddWithValue("$expenseId", expenseId);
-        command.Parameters.AddWithValue("$userId", userId);
+        using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = @"
+            DELETE FROM Expenses
+            WHERE expenseId = $expenseId
+              AND userId = $userId;
+            ";
 
-        command.ExecuteNonQuery();
+            command.Parameters.AddWithValue("$expenseId", expenseId);
+            command.Parameters.AddWithValue("$userId", userId);
+
+            if (command.ExecuteNonQuery() > 0 && oldExpense is not null)
+            {
+                ChangeCategoryBudget(connection, transaction, userId, oldExpense.Value.CategoryId, oldExpense.Value.Amount);
+            }
+        }
+
+        transaction.Commit();
     }
 
     // ---------------- CATEGORIES ----------------
