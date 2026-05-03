@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using SharedData;
 
 namespace MAUIdesktop;
@@ -43,7 +44,8 @@ public partial class MainPage : ContentPage
         WelcomeLabel.Text = $"Welcome, {user?.Name}";
         _categories.Clear();
 
-        var expenses = _db.GetAllExpensesByUser(user!.UserId)
+        var allExpenses = _db.GetAllExpensesByUser(user!.UserId);
+        var expenses = allExpenses
             .GroupBy(expense => expense.CategoryId)
             .ToDictionary(group => group.Key, group => group.ToList());
 
@@ -55,10 +57,12 @@ public partial class MainPage : ContentPage
 
         var totalBudget = _categories.Sum(category => category.Budget);
         var totalSpent = _categories.Sum(category => category.Spent);
+        var monthlyAverage = SpendingSummaryCalculator.CalculateMonthlyAverage(allExpenses);
 
         CategoryCountLabel.Text = _categories.Count.ToString();
         TotalBudgetLabel.Text = totalBudget.ToString("C");
         TotalSpentLabel.Text = totalSpent.ToString("C");
+        MonthlyAverageLabel.Text = monthlyAverage.ToString("C");
     }
 
     private async void OnAddCategoryClicked(object sender, EventArgs e)
@@ -197,6 +201,7 @@ public sealed class CategoryCardViewModel
         CategoryId = category.CategoryId;
         Name = category.Name;
         RemainingBudget = category.RemainingBudget;
+        MonthlyAverage = SpendingSummaryCalculator.CalculateMonthlyAverage(expenses);
         Expenses = new ObservableCollection<ExpenseRowViewModel>(
             expenses.OrderByDescending(expense => expense.Date).Select(expense => new ExpenseRowViewModel(expense)));
     }
@@ -206,10 +211,12 @@ public sealed class CategoryCardViewModel
     public double RemainingBudget { get; }
     public double Budget => RemainingBudget + Spent;
     public double Spent => Expenses.Sum(expense => expense.Amount);
+    public double MonthlyAverage { get; }
     public double Remaining => RemainingBudget;
     public double SpentProgress => Budget <= 0 ? 0 : Math.Min(1, Spent / Budget);
     public string BudgetDisplay => $"Budget: {Budget:C}";
     public string SpentDisplay => $"Spent: {Spent:C}";
+    public string MonthlyAverageDisplay => $"Monthly avg: {MonthlyAverage:C}";
     public string RemainingDisplay => $"Remaining: {Remaining:C}";
     public ObservableCollection<ExpenseRowViewModel> Expenses { get; }
 }
@@ -229,4 +236,23 @@ public sealed class ExpenseRowViewModel
     public double Amount { get; }
     public string AmountDisplay => Amount.ToString("C");
     public string Date { get; }
+}
+
+public static class SpendingSummaryCalculator
+{
+    public static double CalculateMonthlyAverage(IEnumerable<Expense> expenses)
+    {
+        return expenses
+            .GroupBy(GetExpenseMonth)
+            .Select(month => month.Sum(expense => expense.Amount))
+            .DefaultIfEmpty(0)
+            .Average();
+    }
+
+    private static string GetExpenseMonth(Expense expense)
+    {
+        return DateTime.TryParse(expense.Date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
+            ? date.ToString("yyyy-MM", CultureInfo.InvariantCulture)
+            : expense.Date;
+    }
 }

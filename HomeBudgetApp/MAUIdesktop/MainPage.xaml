@@ -32,7 +32,7 @@
                     TextColor="{AppThemeBinding Light=#202124, Dark=#F7F7F7}" />
         </Grid>
 
-        <Grid Grid.Row="1" ColumnDefinitions="*,*,*,Auto" ColumnSpacing="12">
+        <Grid Grid.Row="1" ColumnDefinitions="*,*,*,*,Auto" ColumnSpacing="12">
             <Border Stroke="#DADCE0" StrokeThickness="1" Padding="16" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1F1F1F}">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="8" />
@@ -63,7 +63,17 @@
                 </VerticalStackLayout>
             </Border>
 
-            <Button Grid.Column="3"
+            <Border Grid.Column="3" Stroke="#DADCE0" StrokeThickness="1" Padding="16" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1F1F1F}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="3">
+                    <Label Text="Monthly avg" FontSize="13" TextColor="#6B7280" />
+                    <Label x:Name="MonthlyAverageLabel" FontSize="20" FontAttributes="Bold" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Button Grid.Column="4"
                     Text="Add category"
                     Clicked="OnAddCategoryClicked"
                     VerticalOptions="Fill" />
@@ -109,9 +119,13 @@
                                          ProgressColor="#2563EB"
                                          BackgroundColor="{AppThemeBinding Light=#E5E7EB, Dark=#333333}" />
 
-                            <Grid Grid.Row="2" ColumnDefinitions="*,*">
+                            <Grid Grid.Row="2" ColumnDefinitions="*,*,*">
                                 <Label Text="{Binding SpentDisplay}" FontSize="13" />
                                 <Label Grid.Column="1"
+                                       Text="{Binding MonthlyAverageDisplay}"
+                                       FontSize="13"
+                                       HorizontalTextAlignment="Center" />
+                                <Label Grid.Column="2"
                                        Text="{Binding RemainingDisplay}"
                                        FontSize="13"
                                        HorizontalTextAlignment="End" />
