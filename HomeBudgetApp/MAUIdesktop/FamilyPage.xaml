@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:MAUIdesktop"
              x:Class="MAUIdesktop.FamilyPage"
              Title="Family">
 
-    <Grid Padding="28" RowDefinitions="Auto,*">
+    <Grid Padding="28" RowDefinitions="Auto,Auto,*" RowSpacing="18">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
             <VerticalStackLayout Spacing="4">
                 <Label Text="Family budget" FontSize="26" FontAttributes="Bold" />
-                <Label Text="Family features will live here separately from your personal budget."
+                <Label x:Name="FamilyStatusLabel"
                        FontSize="14"
                        TextColor="{AppThemeBinding Light=#626262, Dark=#C7C7C7}" />
             </VerticalStackLayout>
@@ -18,8 +19,8 @@
                     Clicked="OnPersonalClicked" />
         </Grid>
 
-        <Border Grid.Row="1"
-                Margin="0,24,0,0"
+        <Border x:Name="NoFamilyPanel"
+                Grid.Row="1"
                 Padding="18"
                 Stroke="#DADCE0"
                 StrokeThickness="1"
@@ -27,10 +28,112 @@
             <Border.StrokeShape>
                 <RoundRectangle CornerRadius="8" />
             </Border.StrokeShape>
-            <Label Text="No family workspace is connected yet."
-                   FontSize="16"
-                   VerticalOptions="Center"
-                   HorizontalOptions="Center" />
+            <Grid RowDefinitions="Auto,Auto" RowSpacing="16">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="No family workspace is connected yet."
+                               FontSize="18"
+                               FontAttributes="Bold" />
+                        <Label Text="Create a family or accept an invitation to join one."
+                               FontSize="14"
+                               TextColor="{AppThemeBinding Light=#626262, Dark=#C7C7C7}" />
+                    </VerticalStackLayout>
+                    <Button Grid.Column="1"
+                            Text="Create family"
+                            Clicked="OnCreateFamilyClicked"
+                            VerticalOptions="Center" />
+                </Grid>
+
+                <CollectionView Grid.Row="1"
+                                x:Name="InvitationsCollection"
+                                EmptyView="No pending invitations.">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="local:FamilyInvitationViewModel">
+                            <Grid Padding="0,8" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="{Binding FamilyName}" FontSize="16" FontAttributes="Bold" />
+                                    <Label Text="{Binding InvitedByDisplay}" FontSize="13" TextColor="#6B7280" />
+                                </VerticalStackLayout>
+                                <Button Grid.Column="1"
+                                        Text="Accept"
+                                        Clicked="OnAcceptInvitationClicked"
+                                        CommandParameter="{Binding .}" />
+                                <Button Grid.Column="2"
+                                        Text="Decline"
+                                        Clicked="OnDeclineInvitationClicked"
+                                        CommandParameter="{Binding .}"
+                                        BackgroundColor="{AppThemeBinding Light=#F1F3F4, Dark=#2D2D2D}"
+                                        TextColor="{AppThemeBinding Light=#202124, Dark=#F7F7F7}" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Grid>
         </Border>
+
+        <Grid x:Name="FamilyWorkspace"
+              Grid.Row="1"
+              Grid.RowSpan="2"
+              RowDefinitions="Auto,*"
+              RowSpacing="14">
+            <Border Padding="18"
+                    Stroke="#DADCE0"
+                    StrokeThickness="1"
+                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1F1F1F}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                    <VerticalStackLayout Spacing="3">
+                        <Label x:Name="FamilyNameLabel"
+                               FontSize="20"
+                               FontAttributes="Bold" />
+                        <Label x:Name="FamilyRoleLabel"
+                               FontSize="13"
+                               TextColor="{AppThemeBinding Light=#626262, Dark=#C7C7C7}" />
+                    </VerticalStackLayout>
+                    <Button x:Name="InviteButton"
+                            Grid.Column="1"
+                            Text="Invite member"
+                            Clicked="OnInviteMemberClicked"
+                            VerticalOptions="Center" />
+                </Grid>
+            </Border>
+
+            <CollectionView Grid.Row="1"
+                            x:Name="MembersCollection"
+                            EmptyView="No members yet.">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="local:FamilyMemberViewModel">
+                        <Border Margin="0,0,0,10"
+                                Padding="14"
+                                Stroke="#DADCE0"
+                                StrokeThickness="1"
+                                BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1F1F1F}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" />
+                                    <Label Text="{Binding Email}" FontSize="13" TextColor="#6B7280" />
+                                </VerticalStackLayout>
+                                <Label Grid.Column="1"
+                                       Text="{Binding Role}"
+                                       FontAttributes="Bold"
+                                       VerticalTextAlignment="Center" />
+                                <Button Grid.Column="2"
+                                        Text="Remove"
+                                        IsVisible="{Binding CanRemove}"
+                                        Clicked="OnRemoveMemberClicked"
+                                        CommandParameter="{Binding .}"
+                                        BackgroundColor="#FEE2E2"
+                                        TextColor="#991B1B" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
     </Grid>
 </ContentPage>

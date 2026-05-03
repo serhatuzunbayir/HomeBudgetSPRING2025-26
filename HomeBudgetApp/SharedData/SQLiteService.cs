@@ -60,6 +60,27 @@ public class DatabaseRepository
             ON DELETE CASCADE
         );
 
+        CREATE TABLE IF NOT EXISTS FamilyInvitations (
+            invitationId INTEGER PRIMARY KEY AUTOINCREMENT,
+            familyId INTEGER NOT NULL,
+            invitedUserId INTEGER NOT NULL,
+            invitedByUserId INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'Pending',
+            createdAt TEXT NOT NULL,
+
+            FOREIGN KEY (familyId)
+            REFERENCES Families(familyId)
+            ON DELETE CASCADE,
+
+            FOREIGN KEY (invitedUserId)
+            REFERENCES Users(userId)
+            ON DELETE CASCADE,
+
+            FOREIGN KEY (invitedByUserId)
+            REFERENCES Users(userId)
+            ON DELETE CASCADE
+        );
+
         CREATE TABLE IF NOT EXISTS Categories (
             categoryId INTEGER PRIMARY KEY AUTOINCREMENT,
             userId INTEGER NOT NULL,
@@ -894,6 +915,171 @@ public class DatabaseRepository
         command.Parameters.AddWithValue("$familyId", familyId);
         command.Parameters.AddWithValue("$role", role);
 
+        command.ExecuteNonQuery();
+    }
+
+    // ---------------- FAMILY INVITATIONS ----------------
+
+    public int AddFamilyInvitation(int familyId, int invitedUserId, int invitedByUserId)
+    {
+        using var connection = GetConnection();
+        using var command = connection.CreateCommand();
+
+        command.CommandText = @"
+        INSERT INTO FamilyInvitations (familyId, invitedUserId, invitedByUserId, status, createdAt)
+        VALUES ($familyId, $invitedUserId, $invitedByUserId, 'Pending', $createdAt);
+
+        SELECT last_insert_rowid();
+        ";
+
+        command.Parameters.AddWithValue("$familyId", familyId);
+        command.Parameters.AddWithValue("$invitedUserId", invitedUserId);
+        command.Parameters.AddWithValue("$invitedByUserId", invitedByUserId);
+        command.Parameters.AddWithValue("$createdAt", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"));
+
+        return Convert.ToInt32(command.ExecuteScalar());
+    }
+
+    public bool HasPendingFamilyInvitation(int invitedUserId)
+    {
+        using var connection = GetConnection();
+        using var command = connection.CreateCommand();
+
+        command.CommandText = @"
+        SELECT COUNT(*)
+        FROM FamilyInvitations
+        WHERE invitedUserId = $invitedUserId
+          AND status = 'Pending';
+        ";
+
+        command.Parameters.AddWithValue("$invitedUserId", invitedUserId);
+
+        return Convert.ToInt32(command.ExecuteScalar()) > 0;
+    }
+
+    public List<FamilyInvitation> GetPendingFamilyInvitations(int invitedUserId)
+    {
+        var invitations = new List<FamilyInvitation>();
+
+        using var connection = GetConnection();
+        using var command = connection.CreateCommand();
+
+        command.CommandText = @"
+        SELECT FamilyInvitations.invitationId,
+               FamilyInvitations.familyId,
+               Families.name,
+               FamilyInvitations.invitedByUserId,
+               Users.name,
+               FamilyInvitations.status,
+               FamilyInvitations.createdAt
+        FROM FamilyInvitations
+        INNER JOIN Families ON Families.familyId = FamilyInvitations.familyId
+        INNER JOIN Users ON Users.userId = FamilyInvitations.invitedByUserId
+        WHERE FamilyInvitations.invitedUserId = $invitedUserId
+          AND FamilyInvitations.status = 'Pending'
+        ORDER BY FamilyInvitations.createdAt DESC;
+        ";
+
+        command.Parameters.AddWithValue("$invitedUserId", invitedUserId);
+
+        using var reader = command.ExecuteReader();
+
+        while (reader.Read())
+        {
+            invitations.Add(new FamilyInvitation
+            {
+                InvitationId = reader.GetInt32(0),
+                FamilyId = reader.GetInt32(1),
+                FamilyName = reader.GetString(2),
+                InvitedByUserId = reader.GetInt32(3),
+                InvitedByName = reader.GetString(4),
+                Status = reader.GetString(5),
+                CreatedAt = reader.GetString(6)
+            });
+        }
+
+        return invitations;
+    }
+
+    public void AcceptFamilyInvitation(int invitationId, int invitedUserId, string role = "Member")
+    {
+        using var connection = GetConnection();
+        using var transaction = connection.BeginTransaction();
+
+        int familyId;
+
+        using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = @"
+            SELECT familyId
+            FROM FamilyInvitations
+            WHERE invitationId = $invitationId
+              AND invitedUserId = $invitedUserId
+              AND status = 'Pending';
+            ";
+
+            command.Parameters.AddWithValue("$invitationId", invitationId);
+            command.Parameters.AddWithValue("$invitedUserId", invitedUserId);
+
+            var result = command.ExecuteScalar();
+            if (result is null || result == DBNull.Value)
+                throw new InvalidOperationException("Pending invitation was not found.");
+
+            familyId = Convert.ToInt32(result);
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = @"
+            INSERT INTO FamilyMembers (userId, familyId, role)
+            VALUES ($userId, $familyId, $role);
+            ";
+
+            command.Parameters.AddWithValue("$userId", invitedUserId);
+            command.Parameters.AddWithValue("$familyId", familyId);
+            command.Parameters.AddWithValue("$role", role);
+            command.ExecuteNonQuery();
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = @"
+            UPDATE FamilyInvitations
+            SET status = 'Accepted'
+            WHERE invitationId = $invitationId;
+
+            UPDATE FamilyInvitations
+            SET status = 'Declined'
+            WHERE invitedUserId = $invitedUserId
+              AND status = 'Pending';
+            ";
+
+            command.Parameters.AddWithValue("$invitationId", invitationId);
+            command.Parameters.AddWithValue("$invitedUserId", invitedUserId);
+            command.ExecuteNonQuery();
+        }
+
+        transaction.Commit();
+    }
+
+    public void DeclineFamilyInvitation(int invitationId, int invitedUserId)
+    {
+        using var connection = GetConnection();
+        using var command = connection.CreateCommand();
+
+        command.CommandText = @"
+        UPDATE FamilyInvitations
+        SET status = 'Declined'
+        WHERE invitationId = $invitationId
+          AND invitedUserId = $invitedUserId
+          AND status = 'Pending';
+        ";
+
+        command.Parameters.AddWithValue("$invitationId", invitationId);
+        command.Parameters.AddWithValue("$invitedUserId", invitedUserId);
         command.ExecuteNonQuery();
     }
 
