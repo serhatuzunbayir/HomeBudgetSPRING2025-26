@@ -6,9 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddSingleton(_ =>
 {
-    var database = new DatabaseService(SharedDatabasePath.GetPath());
-    database.Initialize();
-    return database;
+    return new DatabaseRepository(SharedDatabasePath.GetPath());
 });
 
 var app = builder.Build();
