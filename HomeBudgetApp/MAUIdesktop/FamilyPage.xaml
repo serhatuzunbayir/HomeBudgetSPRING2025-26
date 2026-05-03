@@ -5,135 +5,160 @@
              x:Class="MAUIdesktop.FamilyPage"
              Title="Family">
 
-    <Grid Padding="28" RowDefinitions="Auto,Auto,*" RowSpacing="18">
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-            <VerticalStackLayout Spacing="4">
-                <Label Text="Family budget" FontSize="26" FontAttributes="Bold" />
-                <Label x:Name="FamilyStatusLabel"
-                       FontSize="14"
-                       TextColor="{AppThemeBinding Light=#626262, Dark=#C7C7C7}" />
+    <Grid ColumnDefinitions="220,*">
+        <Grid BackgroundColor="{StaticResource FinanceSidebar}"
+              Padding="22"
+              RowDefinitions="Auto,*,Auto">
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Family Budget"
+                       FontSize="22"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource White}" />
+                <Label Text="Shared spending control"
+                       FontSize="12"
+                       TextColor="{StaticResource FinanceSidebarText}" />
             </VerticalStackLayout>
 
-            <Button Grid.Column="1"
-                    Text="Personal page"
-                    Clicked="OnPersonalClicked" />
+            <VerticalStackLayout Grid.Row="1"
+                                 Margin="0,34,0,0"
+                                 Spacing="12">
+                <Button Text="Personal page"
+                        Clicked="OnPersonalClicked"
+                        Style="{StaticResource SecondaryButtonStyle}" />
+                <Button Text="Family"
+                        Style="{StaticResource SuccessButtonStyle}" />
+            </VerticalStackLayout>
         </Grid>
 
-        <Border x:Name="NoFamilyPanel"
-                Grid.Row="1"
-                Padding="18"
-                Stroke="#DADCE0"
-                StrokeThickness="1"
-                BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1F1F1F}">
-            <Border.StrokeShape>
-                <RoundRectangle CornerRadius="8" />
-            </Border.StrokeShape>
-            <Grid RowDefinitions="Auto,Auto" RowSpacing="16">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+        <ScrollView Grid.Column="1">
+            <Grid Padding="28"
+                  RowDefinitions="Auto,Auto"
+                  RowSpacing="20">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="No family workspace is connected yet."
-                               FontSize="18"
-                               FontAttributes="Bold" />
-                        <Label Text="Create a family or accept an invitation to join one."
-                               FontSize="14"
-                               TextColor="{AppThemeBinding Light=#626262, Dark=#C7C7C7}" />
+                        <Label Text="Family Management" Style="{StaticResource PageTitleStyle}" />
+                        <Label x:Name="FamilyStatusLabel" Style="{StaticResource MutedLabelStyle}" />
                     </VerticalStackLayout>
+
                     <Button Grid.Column="1"
-                            Text="Create family"
-                            Clicked="OnCreateFamilyClicked"
+                            Text="Personal page"
+                            Clicked="OnPersonalClicked"
+                            Style="{StaticResource SecondaryButtonStyle}"
                             VerticalOptions="Center" />
                 </Grid>
 
-                <CollectionView Grid.Row="1"
-                                x:Name="InvitationsCollection"
-                                EmptyView="No pending invitations.">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="local:FamilyInvitationViewModel">
-                            <Grid Padding="0,8" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
-                                <VerticalStackLayout Spacing="2">
-                                    <Label Text="{Binding FamilyName}" FontSize="16" FontAttributes="Bold" />
-                                    <Label Text="{Binding InvitedByDisplay}" FontSize="13" TextColor="#6B7280" />
-                                </VerticalStackLayout>
-                                <Button Grid.Column="1"
-                                        Text="Accept"
-                                        Clicked="OnAcceptInvitationClicked"
-                                        CommandParameter="{Binding .}" />
-                                <Button Grid.Column="2"
-                                        Text="Decline"
-                                        Clicked="OnDeclineInvitationClicked"
-                                        CommandParameter="{Binding .}"
-                                        BackgroundColor="{AppThemeBinding Light=#F1F3F4, Dark=#2D2D2D}"
-                                        TextColor="{AppThemeBinding Light=#202124, Dark=#F7F7F7}" />
-                            </Grid>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </Grid>
-        </Border>
+                <Border x:Name="NoFamilyPanel"
+                        Grid.Row="1"
+                        Style="{StaticResource CardBorderStyle}">
+                    <Grid RowDefinitions="Auto,Auto"
+                          RowSpacing="20">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="No family workspace is connected yet."
+                                       Style="{StaticResource SectionTitleStyle}" />
+                                <Label Text="Create a household budget or accept a pending invitation to join shared expense tracking."
+                                       Style="{StaticResource MutedLabelStyle}" />
+                            </VerticalStackLayout>
+                            <Button Grid.Column="1"
+                                    Text="Create family"
+                                    Clicked="OnCreateFamilyClicked"
+                                    VerticalOptions="Center" />
+                        </Grid>
 
-        <Grid x:Name="FamilyWorkspace"
-              Grid.Row="1"
-              Grid.RowSpan="2"
-              RowDefinitions="Auto,*"
-              RowSpacing="14">
-            <Border Padding="18"
-                    Stroke="#DADCE0"
-                    StrokeThickness="1"
-                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1F1F1F}">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="8" />
-                </Border.StrokeShape>
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                    <VerticalStackLayout Spacing="3">
-                        <Label x:Name="FamilyNameLabel"
-                               FontSize="20"
-                               FontAttributes="Bold" />
-                        <Label x:Name="FamilyRoleLabel"
-                               FontSize="13"
-                               TextColor="{AppThemeBinding Light=#626262, Dark=#C7C7C7}" />
-                    </VerticalStackLayout>
-                    <Button x:Name="InviteButton"
-                            Grid.Column="1"
-                            Text="Invite member"
-                            Clicked="OnInviteMemberClicked"
-                            VerticalOptions="Center" />
-                </Grid>
-            </Border>
+                        <VerticalStackLayout Grid.Row="1" Spacing="10">
+                            <Label Text="Pending Invitations" Style="{StaticResource SectionTitleStyle}" />
+                            <CollectionView x:Name="InvitationsCollection"
+                                            EmptyView="No pending invitations.">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="local:FamilyInvitationViewModel">
+                                        <Grid Padding="0,10" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                                            <VerticalStackLayout Spacing="2">
+                                                <Label Text="{Binding FamilyName}" FontSize="16" FontAttributes="Bold" />
+                                                <Label Text="{Binding InvitedByDisplay}" Style="{StaticResource MutedLabelStyle}" />
+                                            </VerticalStackLayout>
+                                            <Button Grid.Column="1"
+                                                    Text="Accept"
+                                                    Clicked="OnAcceptInvitationClicked"
+                                                    CommandParameter="{Binding .}"
+                                                    Style="{StaticResource SuccessButtonStyle}" />
+                                            <Button Grid.Column="2"
+                                                    Text="Decline"
+                                                    Clicked="OnDeclineInvitationClicked"
+                                                    CommandParameter="{Binding .}"
+                                                    Style="{StaticResource SecondaryButtonStyle}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
 
-            <CollectionView Grid.Row="1"
-                            x:Name="MembersCollection"
-                            EmptyView="No members yet.">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="local:FamilyMemberViewModel">
-                        <Border Margin="0,0,0,10"
-                                Padding="14"
-                                Stroke="#DADCE0"
-                                StrokeThickness="1"
-                                BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1F1F1F}">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="8" />
-                            </Border.StrokeShape>
-                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
-                                <VerticalStackLayout Spacing="2">
-                                    <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" />
-                                    <Label Text="{Binding Email}" FontSize="13" TextColor="#6B7280" />
+                <Grid x:Name="FamilyWorkspace"
+                      Grid.Row="1"
+                      RowDefinitions="Auto,Auto"
+                      RowSpacing="18">
+                    <Grid ColumnDefinitions="2*,*"
+                          ColumnSpacing="18">
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                                <VerticalStackLayout Spacing="6">
+                                    <Label x:Name="FamilyNameLabel"
+                                           Style="{StaticResource SectionTitleStyle}" />
+                                    <Label x:Name="FamilyRoleLabel"
+                                           Style="{StaticResource MutedLabelStyle}" />
+                                    <Label Text="Admins can invite registered users and remove members when needed."
+                                           Style="{StaticResource MutedLabelStyle}" />
                                 </VerticalStackLayout>
-                                <Label Grid.Column="1"
-                                       Text="{Binding Role}"
-                                       FontAttributes="Bold"
-                                       VerticalTextAlignment="Center" />
-                                <Button Grid.Column="2"
-                                        Text="Remove"
-                                        IsVisible="{Binding CanRemove}"
-                                        Clicked="OnRemoveMemberClicked"
-                                        CommandParameter="{Binding .}"
-                                        BackgroundColor="#FEE2E2"
-                                        TextColor="#991B1B" />
+                                <Button x:Name="InviteButton"
+                                        Grid.Column="1"
+                                        Text="Invite member"
+                                        Clicked="OnInviteMemberClicked"
+                                        VerticalOptions="Center" />
                             </Grid>
                         </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-        </Grid>
+
+                        <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="Access Status" Style="{StaticResource SectionTitleStyle}" />
+                                <Label Text="Owner/Admin" Style="{StaticResource MutedLabelStyle}" />
+                                <Label Text="Invite and remove members" FontSize="16" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+
+                    <VerticalStackLayout Grid.Row="1" Spacing="12">
+                        <Label Text="Family Members" Style="{StaticResource SectionTitleStyle}" />
+                        <CollectionView x:Name="MembersCollection"
+                                        EmptyView="No members yet.">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="local:FamilyMemberViewModel">
+                                    <Border Margin="0,0,0,10"
+                                            Style="{StaticResource CardBorderStyle}">
+                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                                            <VerticalStackLayout Spacing="2">
+                                                <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" />
+                                                <Label Text="{Binding Email}" Style="{StaticResource MutedLabelStyle}" />
+                                            </VerticalStackLayout>
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding Role}"
+                                                   TextColor="{StaticResource FinanceSuccess}"
+                                                   FontAttributes="Bold"
+                                                   VerticalTextAlignment="Center" />
+                                            <Button Grid.Column="2"
+                                                    Text="Remove"
+                                                    IsVisible="{Binding CanRemove}"
+                                                    Clicked="OnRemoveMemberClicked"
+                                                    CommandParameter="{Binding .}"
+                                                    Style="{StaticResource DangerButtonStyle}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Grid>
+            </Grid>
+        </ScrollView>
     </Grid>
 </ContentPage>

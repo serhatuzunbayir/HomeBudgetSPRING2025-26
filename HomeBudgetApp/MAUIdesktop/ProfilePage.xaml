@@ -5,39 +5,44 @@
              Title="Profile">
 
     <ScrollView>
-        <Grid Padding="28" RowDefinitions="Auto,Auto" RowSpacing="20" MaximumWidthRequest="720">
+        <Grid Padding="28"
+              RowDefinitions="Auto,Auto"
+              RowSpacing="20"
+              MaximumWidthRequest="760"
+              HorizontalOptions="Center">
             <VerticalStackLayout Spacing="4">
-                <Label Text="Profile" FontSize="26" FontAttributes="Bold" />
-                <Label Text="View your account details and update your name or password."
-                       FontSize="14"
-                       TextColor="{AppThemeBinding Light=#626262, Dark=#C7C7C7}" />
+                <Label Text="Profile" Style="{StaticResource PageTitleStyle}" />
+                <Label Text="Keep your account details current for budget and family access."
+                       Style="{StaticResource MutedLabelStyle}" />
             </VerticalStackLayout>
 
             <Border Grid.Row="1"
-                    Stroke="#DADCE0"
-                    StrokeThickness="1"
-                    Padding="18"
-                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1F1F1F}">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="8" />
-                </Border.StrokeShape>
+                    Style="{StaticResource CardBorderStyle}"
+                    Padding="24">
+                <VerticalStackLayout Spacing="16">
+                    <Label Text="Account Information" Style="{StaticResource SectionTitleStyle}" />
 
-                <VerticalStackLayout Spacing="14">
-                    <Label Text="Account information" FontSize="18" FontAttributes="Bold" />
+                    <Border Style="{StaticResource SoftPanelStyle}">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Email" Style="{StaticResource MutedLabelStyle}" />
+                            <Label x:Name="EmailLabel" FontSize="16" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+                    </Border>
 
-                    <Label Text="Email" FontSize="13" TextColor="#6B7280" />
-                    <Label x:Name="EmailLabel" FontSize="16" />
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Name" Style="{StaticResource MutedLabelStyle}" />
+                        <Entry x:Name="NameEntry" Placeholder="Enter your name" />
+                    </VerticalStackLayout>
 
-                    <Label Text="Name" FontSize="13" TextColor="#6B7280" />
-                    <Entry x:Name="NameEntry" Placeholder="Name" />
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="New password" Style="{StaticResource MutedLabelStyle}" />
+                        <Entry x:Name="PasswordEntry" Placeholder="Leave unchanged to keep current password" IsPassword="True" />
+                    </VerticalStackLayout>
 
-                    <Label Text="New password" FontSize="13" TextColor="#6B7280" />
-                    <Entry x:Name="PasswordEntry" Placeholder="Leave unchanged to keep current password" IsPassword="True" />
-
-                    <Label x:Name="MessageLabel" />
+                    <Label x:Name="MessageLabel" Style="{StaticResource MutedLabelStyle}" />
 
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <Button Text="Back" Clicked="OnBackClicked" BackgroundColor="{AppThemeBinding Light=#F1F3F4, Dark=#2D2D2D}" TextColor="{AppThemeBinding Light=#202124, Dark=#F7F7F7}" />
+                        <Button Text="Back" Clicked="OnBackClicked" Style="{StaticResource SecondaryButtonStyle}" />
                         <Button Grid.Column="1" Text="Save changes" Clicked="OnSaveClicked" />
                     </Grid>
                 </VerticalStackLayout>

@@ -5,160 +5,240 @@
              x:Class="MAUIdesktop.MainPage"
              Title="My Budget">
 
-    <Grid Padding="28" RowDefinitions="Auto,Auto,*" RowSpacing="20">
-        <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10">
-            <VerticalStackLayout Spacing="3">
-                <Label x:Name="WelcomeLabel"
-                       FontSize="26"
+    <Grid ColumnDefinitions="220,*">
+        <Grid BackgroundColor="{StaticResource FinanceSidebar}"
+              Padding="22"
+              RowDefinitions="Auto,*,Auto">
+            <VerticalStackLayout Spacing="8">
+                <Label Text="HomeBudget"
+                       FontSize="22"
                        FontAttributes="Bold"
-                       TextColor="{AppThemeBinding Light=#202124, Dark=#F7F7F7}" />
-                <Label Text="Personal budget workspace"
-                       FontSize="14"
-                       TextColor="{AppThemeBinding Light=#626262, Dark=#C7C7C7}" />
+                       TextColor="{StaticResource White}" />
+                <Label Text="Personal finance workspace"
+                       FontSize="12"
+                       TextColor="{StaticResource FinanceSidebarText}" />
             </VerticalStackLayout>
 
-            <Button Grid.Column="1"
-                    Text="Family"
-                    Clicked="OnFamilyClicked"
-                    BackgroundColor="{AppThemeBinding Light=#F1F3F4, Dark=#2D2D2D}"
-                    TextColor="{AppThemeBinding Light=#202124, Dark=#F7F7F7}" />
-            <Button Grid.Column="2"
-                    Text="Profile"
-                    Clicked="OnProfileClicked" />
-            <Button Grid.Column="3"
+            <VerticalStackLayout Grid.Row="1"
+                                 Margin="0,34,0,0"
+                                 Spacing="12">
+                <Button Text="Dashboard"
+                        Style="{StaticResource SuccessButtonStyle}" />
+                <Button Text="Family"
+                        Clicked="OnFamilyClicked"
+                        Style="{StaticResource SecondaryButtonStyle}" />
+                <Button Text="Profile"
+                        Clicked="OnProfileClicked"
+                        Style="{StaticResource SecondaryButtonStyle}" />
+            </VerticalStackLayout>
+
+            <Button Grid.Row="2"
                     Text="Logout"
                     Clicked="OnLogoutClicked"
-                    BackgroundColor="{AppThemeBinding Light=#F1F3F4, Dark=#2D2D2D}"
-                    TextColor="{AppThemeBinding Light=#202124, Dark=#F7F7F7}" />
+                    Style="{StaticResource DangerButtonStyle}" />
         </Grid>
 
-        <Grid Grid.Row="1" ColumnDefinitions="*,*,*,*,Auto" ColumnSpacing="12">
-            <Border Stroke="#DADCE0" StrokeThickness="1" Padding="16" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1F1F1F}">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="8" />
-                </Border.StrokeShape>
-                <VerticalStackLayout Spacing="3">
-                    <Label Text="Categories" FontSize="13" TextColor="#6B7280" />
-                    <Label x:Name="CategoryCountLabel" FontSize="20" FontAttributes="Bold" />
-                </VerticalStackLayout>
-            </Border>
+        <ScrollView Grid.Column="1">
+            <Grid Padding="28"
+                  RowDefinitions="Auto,Auto,Auto,Auto"
+                  RowSpacing="20">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <VerticalStackLayout Spacing="4">
+                        <Label x:Name="WelcomeLabel"
+                               Style="{StaticResource PageTitleStyle}" />
+                        <Label Text="Track spending, category limits, alerts, and family budget activity."
+                               Style="{StaticResource MutedLabelStyle}" />
+                    </VerticalStackLayout>
 
-            <Border Grid.Column="1" Stroke="#DADCE0" StrokeThickness="1" Padding="16" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1F1F1F}">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="8" />
-                </Border.StrokeShape>
-                <VerticalStackLayout Spacing="3">
-                    <Label Text="Total budget" FontSize="13" TextColor="#6B7280" />
-                    <Label x:Name="TotalBudgetLabel" FontSize="20" FontAttributes="Bold" />
-                </VerticalStackLayout>
-            </Border>
+                    <Button Grid.Column="1"
+                            Text="Add category"
+                            Clicked="OnAddCategoryClicked"
+                            VerticalOptions="Center" />
+                </Grid>
 
-            <Border Grid.Column="2" Stroke="#DADCE0" StrokeThickness="1" Padding="16" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1F1F1F}">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="8" />
-                </Border.StrokeShape>
-                <VerticalStackLayout Spacing="3">
-                    <Label Text="Spent" FontSize="13" TextColor="#6B7280" />
-                    <Label x:Name="TotalSpentLabel" FontSize="20" FontAttributes="Bold" />
-                </VerticalStackLayout>
-            </Border>
-
-            <Border Grid.Column="3" Stroke="#DADCE0" StrokeThickness="1" Padding="16" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1F1F1F}">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="8" />
-                </Border.StrokeShape>
-                <VerticalStackLayout Spacing="3">
-                    <Label Text="Monthly avg" FontSize="13" TextColor="#6B7280" />
-                    <Label x:Name="MonthlyAverageLabel" FontSize="20" FontAttributes="Bold" />
-                </VerticalStackLayout>
-            </Border>
-
-            <Button Grid.Column="4"
-                    Text="Add category"
-                    Clicked="OnAddCategoryClicked"
-                    VerticalOptions="Fill" />
-        </Grid>
-
-        <CollectionView Grid.Row="2"
-                        x:Name="CategoryCollection"
-                        EmptyView="No categories yet. Add one to start tracking your expenses.">
-            <CollectionView.ItemsLayout>
-                <GridItemsLayout Orientation="Vertical" Span="2" HorizontalItemSpacing="14" VerticalItemSpacing="14" />
-            </CollectionView.ItemsLayout>
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="local:CategoryCardViewModel">
-                    <Border Stroke="#DADCE0"
-                            StrokeThickness="1"
-                            Padding="16"
-                            BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1F1F1F}">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="8" />
-                        </Border.StrokeShape>
-
-                        <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="12">
-                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                                <VerticalStackLayout Spacing="2">
-                                    <Label Text="{Binding Name}" FontSize="18" FontAttributes="Bold" />
-                                    <Label Text="{Binding BudgetDisplay}" FontSize="13" TextColor="#6B7280" />
-                                </VerticalStackLayout>
-
-                                <Button Grid.Column="1"
-                                        Text="Expense"
-                                        Clicked="OnAddExpenseClicked"
-                                        CommandParameter="{Binding .}" />
-                                <Button Grid.Column="2"
-                                        Text="Delete"
-                                        Clicked="OnDeleteCategoryClicked"
-                                        CommandParameter="{Binding .}"
-                                        BackgroundColor="#FEE2E2"
-                                        TextColor="#991B1B" />
-                            </Grid>
-
-                            <ProgressBar Grid.Row="1"
-                                         Progress="{Binding SpentProgress}"
-                                         ProgressColor="#2563EB"
-                                         BackgroundColor="{AppThemeBinding Light=#E5E7EB, Dark=#333333}" />
-
-                            <Grid Grid.Row="2" ColumnDefinitions="*,*,*">
-                                <Label Text="{Binding SpentDisplay}" FontSize="13" />
-                                <Label Grid.Column="1"
-                                       Text="{Binding MonthlyAverageDisplay}"
-                                       FontSize="13"
-                                       HorizontalTextAlignment="Center" />
-                                <Label Grid.Column="2"
-                                       Text="{Binding RemainingDisplay}"
-                                       FontSize="13"
-                                       HorizontalTextAlignment="End" />
-                            </Grid>
-
-                            <CollectionView Grid.Row="3"
-                                            ItemsSource="{Binding Expenses}"
-                                            EmptyView="No expenses in this category.">
-                                <CollectionView.ItemTemplate>
-                                    <DataTemplate x:DataType="local:ExpenseRowViewModel">
-                                        <Grid Padding="0,8" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                                            <VerticalStackLayout Spacing="1">
-                                                <Label Text="{Binding Description}" FontSize="14" />
-                                                <Label Text="{Binding Date}" FontSize="12" TextColor="#6B7280" />
-                                            </VerticalStackLayout>
-                                            <Label Grid.Column="1"
-                                                   Text="{Binding AmountDisplay}"
-                                                   VerticalTextAlignment="Center"
-                                                   FontAttributes="Bold" />
-                                            <Button Grid.Column="2"
-                                                    Text="Remove"
-                                                    Clicked="OnDeleteExpenseClicked"
-                                                    CommandParameter="{Binding .}"
-                                                    BackgroundColor="{AppThemeBinding Light=#F1F3F4, Dark=#2D2D2D}"
-                                                    TextColor="{AppThemeBinding Light=#202124, Dark=#F7F7F7}" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </CollectionView.ItemTemplate>
-                            </CollectionView>
-                        </Grid>
+                <Grid Grid.Row="1"
+                      ColumnDefinitions="*,*,*,*"
+                      ColumnSpacing="14">
+                    <Border Style="{StaticResource CardBorderStyle}">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Total Budget" Style="{StaticResource MutedLabelStyle}" />
+                            <Label x:Name="TotalBudgetLabel" Style="{StaticResource MetricValueStyle}" />
+                            <Label Text="Allocated across categories" Style="{StaticResource MutedLabelStyle}" />
+                        </VerticalStackLayout>
                     </Border>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
+
+                    <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Total Spent" Style="{StaticResource MutedLabelStyle}" />
+                            <Label x:Name="TotalSpentLabel" Style="{StaticResource MetricValueStyle}" TextColor="{StaticResource FinanceDanger}" />
+                            <Label Text="All recorded expenses" Style="{StaticResource MutedLabelStyle}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource CardBorderStyle}">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Remaining Budget" Style="{StaticResource MutedLabelStyle}" />
+                            <Label x:Name="RemainingBudgetLabel" Style="{StaticResource MetricValueStyle}" TextColor="{StaticResource FinanceSuccess}" />
+                            <Label Text="Available to spend" Style="{StaticResource MutedLabelStyle}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="3" Style="{StaticResource CardBorderStyle}">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="This Month" Style="{StaticResource MutedLabelStyle}" />
+                            <Label x:Name="ThisMonthExpensesLabel" Style="{StaticResource MetricValueStyle}" />
+                            <Label Text="Current month expenses" Style="{StaticResource MutedLabelStyle}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Row="2"
+                      ColumnDefinitions="2*,*"
+                      ColumnSpacing="18">
+                    <VerticalStackLayout Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <Label Text="Category Budget Status" Style="{StaticResource SectionTitleStyle}" />
+                            <Label Grid.Column="1"
+                                   x:Name="CategoryCountLabel"
+                                   Style="{StaticResource MutedLabelStyle}"
+                                   VerticalTextAlignment="Center" />
+                        </Grid>
+
+                        <CollectionView x:Name="CategoryCollection"
+                                        EmptyView="No categories yet. Add one to start tracking your expenses.">
+                            <CollectionView.ItemsLayout>
+                                <GridItemsLayout Orientation="Vertical" Span="2" HorizontalItemSpacing="14" VerticalItemSpacing="14" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="local:CategoryCardViewModel">
+                                    <Border Style="{StaticResource CardBorderStyle}">
+                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
+                                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                                <VerticalStackLayout Spacing="2">
+                                                    <Label Text="{Binding Name}" FontSize="18" FontAttributes="Bold" />
+                                                    <Label Text="{Binding StatusDisplay}"
+                                                           FontSize="13"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{Binding StatusColor}" />
+                                                </VerticalStackLayout>
+
+                                                <Button Grid.Column="1"
+                                                        Text="Expense"
+                                                        Clicked="OnAddExpenseClicked"
+                                                        CommandParameter="{Binding .}" />
+                                                <Button Grid.Column="2"
+                                                        Text="Delete"
+                                                        Clicked="OnDeleteCategoryClicked"
+                                                        CommandParameter="{Binding .}"
+                                                        Style="{StaticResource DangerButtonStyle}" />
+                                            </Grid>
+
+                                            <ProgressBar Grid.Row="1"
+                                                         Progress="{Binding SpentProgress}"
+                                                         Style="{StaticResource BudgetProgressStyle}" />
+
+                                            <Grid Grid.Row="2" ColumnDefinitions="*,*,*">
+                                                <VerticalStackLayout Spacing="2">
+                                                    <Label Text="Spent" Style="{StaticResource MutedLabelStyle}" />
+                                                    <Label Text="{Binding SpentDisplay}" FontAttributes="Bold" />
+                                                </VerticalStackLayout>
+                                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                                    <Label Text="Remaining" Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
+                                                    <Label Text="{Binding RemainingDisplay}" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                                                </VerticalStackLayout>
+                                                <VerticalStackLayout Grid.Column="2" Spacing="2">
+                                                    <Label Text="Average" Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="End" />
+                                                    <Label Text="{Binding MonthlyAverageDisplay}" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                                </VerticalStackLayout>
+                                            </Grid>
+
+                                            <CollectionView Grid.Row="3"
+                                                            ItemsSource="{Binding Expenses}"
+                                                            EmptyView="No expenses added yet.">
+                                                <CollectionView.ItemTemplate>
+                                                    <DataTemplate x:DataType="local:ExpenseRowViewModel">
+                                                        <Grid Padding="0,8"
+                                                              ColumnDefinitions="*,Auto,Auto"
+                                                              ColumnSpacing="10">
+                                                            <VerticalStackLayout Spacing="1">
+                                                                <Label Text="{Binding Description}" FontSize="14" />
+                                                                <Label Text="{Binding Date}" Style="{StaticResource MutedLabelStyle}" />
+                                                            </VerticalStackLayout>
+                                                            <Label Grid.Column="1"
+                                                                   Text="{Binding AmountDisplay}"
+                                                                   VerticalTextAlignment="Center"
+                                                                   FontAttributes="Bold"
+                                                                   TextColor="{StaticResource FinanceDanger}" />
+                                                            <Button Grid.Column="2"
+                                                                    Text="Remove"
+                                                                    Clicked="OnDeleteExpenseClicked"
+                                                                    CommandParameter="{Binding .}"
+                                                                    Style="{StaticResource SecondaryButtonStyle}" />
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </CollectionView.ItemTemplate>
+                                            </CollectionView>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Grid.Column="1" Spacing="14">
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="Analytics" Style="{StaticResource SectionTitleStyle}" />
+                                <Label Text="Monthly Average" Style="{StaticResource MutedLabelStyle}" />
+                                <Label x:Name="MonthlyAverageLabel" Style="{StaticResource MetricValueStyle}" />
+                                <Label Text="Where money goes is summarized by each category card." Style="{StaticResource MutedLabelStyle}" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <VerticalStackLayout Spacing="10">
+                                <Label Text="Budget Alerts" Style="{StaticResource SectionTitleStyle}" />
+                                <Label x:Name="BudgetAlertsLabel"
+                                       Style="{StaticResource MutedLabelStyle}" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <VerticalStackLayout Spacing="10">
+                                <Label Text="Recent Expenses" Style="{StaticResource SectionTitleStyle}" />
+                                <CollectionView x:Name="RecentExpensesCollection"
+                                                EmptyView="No expenses added yet.">
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate x:DataType="local:ExpenseRowViewModel">
+                                            <Grid Padding="0,8" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                                <VerticalStackLayout Spacing="1">
+                                                    <Label Text="{Binding Description}" FontAttributes="Bold" />
+                                                    <Label Text="{Binding Date}" Style="{StaticResource MutedLabelStyle}" />
+                                                </VerticalStackLayout>
+                                                <Label Grid.Column="1"
+                                                       Text="{Binding AmountDisplay}"
+                                                       TextColor="{StaticResource FinanceDanger}"
+                                                       FontAttributes="Bold"
+                                                       VerticalTextAlignment="Center" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="Family Overview" Style="{StaticResource SectionTitleStyle}" />
+                                <Label x:Name="FamilyOverviewLabel" Style="{StaticResource MutedLabelStyle}" />
+                                <Button Text="Open family workspace"
+                                        Clicked="OnFamilyClicked"
+                                        Style="{StaticResource SecondaryButtonStyle}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </VerticalStackLayout>
+                </Grid>
+            </Grid>
+        </ScrollView>
     </Grid>
 </ContentPage>

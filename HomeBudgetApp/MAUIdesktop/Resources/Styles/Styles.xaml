@@ -49,6 +49,33 @@
         </Setter>
     </Style>
 
+    <Style TargetType="Button" x:Key="SecondaryButtonStyle">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource FinanceText}, Dark={StaticResource White}}" />
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#EDF2F7, Dark=#374151}" />
+        <Setter Property="FontFamily" Value="OpenSansRegular"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="BorderWidth" Value="0"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="14,10"/>
+        <Setter Property="MinimumHeightRequest" Value="44"/>
+        <Setter Property="MinimumWidthRequest" Value="44"/>
+    </Style>
+
+    <Style TargetType="Button" x:Key="DangerButtonStyle" BasedOn="{StaticResource SecondaryButtonStyle}">
+        <Setter Property="TextColor" Value="{StaticResource FinanceDanger}" />
+        <Setter Property="BackgroundColor" Value="{StaticResource FinanceDangerSoft}" />
+    </Style>
+
+    <Style TargetType="Button" x:Key="SuccessButtonStyle" BasedOn="{StaticResource SecondaryButtonStyle}">
+        <Setter Property="TextColor" Value="{StaticResource FinanceSuccess}" />
+        <Setter Property="BackgroundColor" Value="{StaticResource FinanceSuccessSoft}" />
+    </Style>
+
+    <Style TargetType="Button" x:Key="WarningButtonStyle" BasedOn="{StaticResource SecondaryButtonStyle}">
+        <Setter Property="TextColor" Value="{StaticResource FinanceWarning}" />
+        <Setter Property="BackgroundColor" Value="{StaticResource FinanceWarningSoft}" />
+    </Style>
+
     <Style TargetType="CheckBox">
         <Setter Property="Color" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource White}}" />
         <Setter Property="MinimumHeightRequest" Value="44"/>
@@ -112,10 +139,10 @@
 
     <Style TargetType="Entry">
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
-        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark=#111827}" />
         <Setter Property="FontFamily" Value="OpenSansRegular"/>
         <Setter Property="FontSize" Value="14" />
-        <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}" />
+        <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource FinanceMuted}, Dark={StaticResource Gray300}}" />
         <Setter Property="MinimumHeightRequest" Value="44"/>
         <Setter Property="MinimumWidthRequest" Value="44"/>
         <Setter Property="VisualStateManager.VisualStateGroups">
@@ -174,17 +201,58 @@
     </Style>
 
     <Style TargetType="Label" x:Key="Headline">
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource MidnightBlue}, Dark={StaticResource White}}" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource FinanceText}, Dark={StaticResource White}}" />
         <Setter Property="FontSize" Value="32" />
         <Setter Property="HorizontalOptions" Value="Center" />
         <Setter Property="HorizontalTextAlignment" Value="Center" />
     </Style>
 
     <Style TargetType="Label" x:Key="SubHeadline">
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource MidnightBlue}, Dark={StaticResource White}}" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource FinanceText}, Dark={StaticResource White}}" />
         <Setter Property="FontSize" Value="24" />
         <Setter Property="HorizontalOptions" Value="Center" />
         <Setter Property="HorizontalTextAlignment" Value="Center" />
+    </Style>
+
+    <Style TargetType="Label" x:Key="PageTitleStyle">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource FinanceText}, Dark={StaticResource White}}" />
+        <Setter Property="FontSize" Value="28" />
+        <Setter Property="FontAttributes" Value="Bold" />
+    </Style>
+
+    <Style TargetType="Label" x:Key="SectionTitleStyle">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource FinanceText}, Dark={StaticResource White}}" />
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontAttributes" Value="Bold" />
+    </Style>
+
+    <Style TargetType="Label" x:Key="MutedLabelStyle">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource FinanceMuted}, Dark={StaticResource Gray300}}" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <Style TargetType="Label" x:Key="MetricValueStyle">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource FinanceText}, Dark={StaticResource White}}" />
+        <Setter Property="FontSize" Value="22" />
+        <Setter Property="FontAttributes" Value="Bold" />
+    </Style>
+
+    <Style TargetType="Border" x:Key="CardBorderStyle">
+        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource FinanceBorder}, Dark=#374151}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="Padding" Value="18" />
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource FinanceSurface}, Dark={StaticResource FinanceSurfaceDark}}" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 8" />
+    </Style>
+
+    <Style TargetType="Border" x:Key="SoftPanelStyle" BasedOn="{StaticResource CardBorderStyle}">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F8FAFC, Dark=#111827}" />
+    </Style>
+
+    <Style TargetType="ProgressBar" x:Key="BudgetProgressStyle">
+        <Setter Property="ProgressColor" Value="{StaticResource Primary}" />
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#E5E7EB, Dark=#374151}" />
+        <Setter Property="HeightRequest" Value="8" />
     </Style>
 
     <Style TargetType="ListView">
@@ -408,7 +476,7 @@
 
     <Style TargetType="Page" ApplyToDerivedTypes="True">
         <Setter Property="Padding" Value="0"/>
-        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}" />
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource FinanceBackground}, Dark=#111827}" />
     </Style>
 
     <Style TargetType="Shell" ApplyToDerivedTypes="True">

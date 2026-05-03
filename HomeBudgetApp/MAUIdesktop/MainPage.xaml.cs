@@ -8,6 +8,7 @@ public partial class MainPage : ContentPage
 {
     private readonly DatabaseRepository _db;
     private readonly ObservableCollection<CategoryCardViewModel> _categories = new();
+    private readonly ObservableCollection<ExpenseRowViewModel> _recentExpenses = new();
 
     public MainPage()
     {
@@ -15,6 +16,7 @@ public partial class MainPage : ContentPage
 
         _db = AppDatabase.Instance;
         CategoryCollection.ItemsSource = _categories;
+        RecentExpensesCollection.ItemsSource = _recentExpenses;
     }
 
     protected override void OnAppearing()
@@ -57,12 +59,29 @@ public partial class MainPage : ContentPage
 
         var totalBudget = _categories.Sum(category => category.Budget);
         var totalSpent = _categories.Sum(category => category.Spent);
+        var remainingBudget = _categories.Sum(category => category.Remaining);
         var monthlyAverage = SpendingSummaryCalculator.CalculateMonthlyAverage(allExpenses);
+        var thisMonthExpenses = allExpenses
+            .Where(SpendingSummaryCalculator.IsInCurrentMonth)
+            .Sum(expense => expense.Amount);
 
         CategoryCountLabel.Text = _categories.Count.ToString();
         TotalBudgetLabel.Text = totalBudget.ToString("C");
         TotalSpentLabel.Text = totalSpent.ToString("C");
+        RemainingBudgetLabel.Text = remainingBudget.ToString("C");
+        ThisMonthExpensesLabel.Text = thisMonthExpenses.ToString("C");
         MonthlyAverageLabel.Text = monthlyAverage.ToString("C");
+        BudgetAlertsLabel.Text = BuildBudgetAlertText(_categories);
+        FamilyOverviewLabel.Text = BuildFamilyOverviewText(user.UserId);
+
+        _recentExpenses.Clear();
+        foreach (var expense in allExpenses
+                     .OrderByDescending(expense => expense.Date)
+                     .Take(6)
+                     .Select(expense => new ExpenseRowViewModel(expense)))
+        {
+            _recentExpenses.Add(expense);
+        }
     }
 
     private async void OnAddCategoryClicked(object sender, EventArgs e)
@@ -107,7 +126,7 @@ public partial class MainPage : ContentPage
             return;
         }
 
-        var description = await DisplayPromptAsync("New expense", "Description", "Add", "Cancel", "Market");
+        var description = await DisplayPromptAsync("New expense", "Description", "Add", "Cancel", "Weekly groceries");
         description = (description ?? "").Trim();
 
         if (string.IsNullOrWhiteSpace(description))
@@ -115,7 +134,7 @@ public partial class MainPage : ContentPage
             return;
         }
 
-        var amountText = await DisplayPromptAsync("New expense", "Amount", "Add", "Cancel", "150", keyboard: Keyboard.Numeric);
+        var amountText = await DisplayPromptAsync("New expense", "Enter expense amount", "Add", "Cancel", "150", keyboard: Keyboard.Numeric);
         if (!TryReadMoney(amountText, out var amount) || amount <= 0)
         {
             await DisplayAlert("Invalid amount", "Please enter a valid amount greater than zero.", "OK");
@@ -192,6 +211,32 @@ public partial class MainPage : ContentPage
             System.Globalization.CultureInfo.InvariantCulture,
             out amount);
     }
+
+    private static string BuildBudgetAlertText(IEnumerable<CategoryCardViewModel> categories)
+    {
+        var alerts = categories
+            .Where(category => category.Budget > 0 && category.Remaining <= category.Budget * 0.2)
+            .Select(category => category.Remaining < 0
+                ? $"{category.Name} is over budget"
+                : $"{category.Name} is close to its limit")
+            .ToList();
+
+        return alerts.Count == 0
+            ? "All categories are within a healthy range."
+            : string.Join(Environment.NewLine, alerts);
+    }
+
+    private string BuildFamilyOverviewText(int userId)
+    {
+        var family = _db.GetFamilyByUser(userId);
+        if (family is null)
+        {
+            return "No family workspace connected yet.";
+        }
+
+        var memberCount = _db.GetFamilyUsers(family.FamilyId).Count;
+        return $"{family.Name} · {memberCount} member{(memberCount == 1 ? "" : "s")}";
+    }
 }
 
 public sealed class CategoryCardViewModel
@@ -218,6 +263,16 @@ public sealed class CategoryCardViewModel
     public string SpentDisplay => $"Spent: {Spent:C}";
     public string MonthlyAverageDisplay => $"Monthly avg: {MonthlyAverage:C}";
     public string RemainingDisplay => $"Remaining: {Remaining:C}";
+    public string StatusDisplay => Remaining < 0
+        ? "Over budget"
+        : Budget > 0 && Remaining <= Budget * 0.2
+            ? "Close to limit"
+            : "On track";
+    public Color StatusColor => Remaining < 0
+        ? Color.FromArgb("#B91C1C")
+        : Budget > 0 && Remaining <= Budget * 0.2
+            ? Color.FromArgb("#B45309")
+            : Color.FromArgb("#15803D");
     public ObservableCollection<ExpenseRowViewModel> Expenses { get; }
 }
 
@@ -254,5 +309,12 @@ public static class SpendingSummaryCalculator
         return DateTime.TryParse(expense.Date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
             ? date.ToString("yyyy-MM", CultureInfo.InvariantCulture)
             : expense.Date;
+    }
+
+    public static bool IsInCurrentMonth(Expense expense)
+    {
+        return DateTime.TryParse(expense.Date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date) &&
+               date.Year == DateTime.Now.Year &&
+               date.Month == DateTime.Now.Month;
     }
 }

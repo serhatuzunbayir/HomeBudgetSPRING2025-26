@@ -1,24 +1,47 @@
-﻿<ContentPage
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
     x:Class="MAUIdesktop.RegisterPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
-    <VerticalStackLayout Padding="30" Spacing="15">
+    <ScrollView>
+        <Grid Padding="36"
+              MaximumWidthRequest="620"
+              HorizontalOptions="Center"
+              VerticalOptions="Center">
+            <Border Style="{StaticResource CardBorderStyle}" Padding="28">
+                <VerticalStackLayout Spacing="16">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Create your account" Style="{StaticResource PageTitleStyle}" />
+                        <Label Text="Start tracking personal and family expenses with a shared budget workspace."
+                               Style="{StaticResource MutedLabelStyle}" />
+                    </VerticalStackLayout>
 
-        <Label Text="Register"
-               FontSize="28"
-               HorizontalOptions="Center"/>
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Email" Style="{StaticResource MutedLabelStyle}" />
+                        <Entry x:Name="EmailEntry" Placeholder="Enter your email"/>
+                    </VerticalStackLayout>
 
-        <Entry x:Name="EmailEntry" Placeholder="Email"/>
-        <Entry x:Name="NameEntry" Placeholder="Name"/>
-        <Entry x:Name="PasswordEntry" Placeholder="Password" IsPassword="True"/>
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Name" Style="{StaticResource MutedLabelStyle}" />
+                        <Entry x:Name="NameEntry" Placeholder="Enter your name"/>
+                    </VerticalStackLayout>
 
-        <Button Text="Register" Clicked="OnRegisterClicked"/>
-        <Button Text="Back to Login" Clicked="OnBackClicked"/>
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Password" Style="{StaticResource MutedLabelStyle}" />
+                        <Entry x:Name="PasswordEntry" Placeholder="Create a password" IsPassword="True"/>
+                    </VerticalStackLayout>
 
-        <Label x:Name="MessageLabel"
-               TextColor="Red"
-               HorizontalOptions="Center"/>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="Back to Login" Clicked="OnBackClicked" Style="{StaticResource SecondaryButtonStyle}"/>
+                        <Button Grid.Column="1" Text="Register" Clicked="OnRegisterClicked"/>
+                    </Grid>
 
-    </VerticalStackLayout>
+                    <Label x:Name="MessageLabel"
+                           TextColor="{StaticResource FinanceDanger}"
+                           HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </ScrollView>
 </ContentPage>

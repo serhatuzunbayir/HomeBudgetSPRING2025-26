@@ -1,23 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="MAUIdesktop.LoginPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
-    <VerticalStackLayout Padding="30" Spacing="15">
+    <Grid ColumnDefinitions="1.1*,1.4*">
+        <Grid BackgroundColor="{StaticResource FinanceSidebar}"
+              Padding="44"
+              RowDefinitions="*,Auto">
+            <VerticalStackLayout VerticalOptions="Center" Spacing="14">
+                <Label Text="HomeBudget"
+                       FontSize="34"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource White}" />
+                <Label Text="Track expenses, budgets, family spending, and monthly insights from one calm workspace."
+                       FontSize="16"
+                       TextColor="{StaticResource FinanceSidebarText}" />
+            </VerticalStackLayout>
 
-        <Label Text="Login"
-               FontSize="28"
-               HorizontalOptions="Center"/>
+            <Label Grid.Row="1"
+                   Text="Personal and family finance tracker"
+                   FontSize="13"
+                   TextColor="{StaticResource FinanceSidebarText}" />
+        </Grid>
 
-        <Entry x:Name="EmailEntry" Placeholder="Email"/>
-        <Entry x:Name="PasswordEntry" Placeholder="Password" IsPassword="True"/>
+        <Grid Grid.Column="1"
+              Padding="48"
+              MaximumWidthRequest="560"
+              HorizontalOptions="Center"
+              VerticalOptions="Center">
+            <Border Style="{StaticResource CardBorderStyle}" Padding="28">
+                <VerticalStackLayout Spacing="16">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Welcome back" Style="{StaticResource PageTitleStyle}" />
+                        <Label Text="Sign in to review your budget dashboard."
+                               Style="{StaticResource MutedLabelStyle}" />
+                    </VerticalStackLayout>
 
-        <Button Text="Login" Clicked="OnLoginClicked"/>
-        <Button Text="Go to Register" Clicked="OnGoRegisterClicked"/>
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Email" Style="{StaticResource MutedLabelStyle}" />
+                        <Entry x:Name="EmailEntry" Placeholder="Enter your email"/>
+                    </VerticalStackLayout>
 
-        <Label x:Name="MessageLabel"
-               TextColor="Red"
-               HorizontalOptions="Center"/>
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Password" Style="{StaticResource MutedLabelStyle}" />
+                        <Entry x:Name="PasswordEntry" Placeholder="Enter your password" IsPassword="True"/>
+                    </VerticalStackLayout>
 
-    </VerticalStackLayout>
+                    <Button Text="Login" Clicked="OnLoginClicked"/>
+                    <Button Text="Create account" Clicked="OnGoRegisterClicked" Style="{StaticResource SecondaryButtonStyle}"/>
+
+                    <Label x:Name="MessageLabel"
+                           TextColor="{StaticResource FinanceDanger}"
+                           HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </Grid>
 </ContentPage>
