@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
 using SharedData;
 
 namespace MAUIdesktop;
@@ -8,7 +9,12 @@ public partial class MainPage : ContentPage
 {
     private readonly DatabaseRepository _db;
     private readonly ObservableCollection<CategoryCardViewModel> _categories = new();
+    private readonly ObservableCollection<CategoryExpenseSummaryViewModel> _categorySummaries = new();
     private readonly ObservableCollection<ExpenseRowViewModel> _recentExpenses = new();
+    private readonly List<ExpenseFilterOptionViewModel> _expenseFilterOptions = new();
+    private readonly List<ExpenseSortOptionViewModel> _expenseSortOptions = new();
+    private List<Category> _allCategories = new();
+    private List<Expense> _allExpenses = new();
 
     public MainPage()
     {
@@ -16,7 +22,19 @@ public partial class MainPage : ContentPage
 
         _db = AppDatabase.Instance;
         CategoryCollection.ItemsSource = _categories;
+        ExpenseSummaryCollection.ItemsSource = _categorySummaries;
         RecentExpensesCollection.ItemsSource = _recentExpenses;
+
+        _expenseSortOptions.AddRange(new[]
+        {
+            new ExpenseSortOptionViewModel(ExpenseSortOption.NewestFirst, "Newest first"),
+            new ExpenseSortOptionViewModel(ExpenseSortOption.OldestFirst, "Oldest first"),
+            new ExpenseSortOptionViewModel(ExpenseSortOption.HighestAmount, "Highest amount"),
+            new ExpenseSortOptionViewModel(ExpenseSortOption.LowestAmount, "Lowest amount")
+        });
+
+        ExpenseSortPicker.ItemsSource = _expenseSortOptions;
+        ExpenseSortPicker.SelectedItem = _expenseSortOptions[0];
     }
 
     protected override void OnAppearing()
@@ -45,13 +63,22 @@ public partial class MainPage : ContentPage
 
         WelcomeLabel.Text = $"Welcome, {user?.Name}";
         _categories.Clear();
+        _categorySummaries.Clear();
 
-        var allExpenses = _db.GetAllExpensesByUser(user!.UserId);
-        var expenses = allExpenses
+        var selectedCategoryId = (ExpenseCategoryFilterPicker.SelectedItem as ExpenseFilterOptionViewModel)?.CategoryId;
+        var selectedSortOption = (ExpenseSortPicker.SelectedItem as ExpenseSortOptionViewModel)?.SortOption
+                                 ?? ExpenseSortOption.NewestFirst;
+
+        _allCategories = _db.GetAllCategoriesByUser(user!.UserId)
+            .OrderBy(category => category.Name)
+            .ToList();
+        _allExpenses = _db.GetAllExpensesByUser(user.UserId);
+
+        var expenses = _allExpenses
             .GroupBy(expense => expense.CategoryId)
             .ToDictionary(group => group.Key, group => group.ToList());
 
-        foreach (var category in _db.GetAllCategoriesByUser(user.UserId))
+        foreach (var category in _allCategories)
         {
             expenses.TryGetValue(category.CategoryId, out var categoryExpenses);
             _categories.Add(new CategoryCardViewModel(category, categoryExpenses ?? new List<Expense>()));
@@ -60,10 +87,10 @@ public partial class MainPage : ContentPage
         var totalBudget = _categories.Sum(category => category.Budget);
         var totalSpent = _categories.Sum(category => category.Spent);
         var remainingBudget = _categories.Sum(category => category.Remaining);
-        var monthlyAverage = SpendingSummaryCalculator.CalculateMonthlyAverage(allExpenses);
+        var monthlyAverage = ExpenseInsightsService.CalculateMonthlyAverage(_allExpenses);
         var activeAlerts = BudgetAlertService.GetActiveAlerts(_categories.Select(category => category.Category));
-        var thisMonthExpenses = allExpenses
-            .Where(SpendingSummaryCalculator.IsInCurrentMonth)
+        var thisMonthExpenses = _allExpenses
+            .Where(ExpenseInsightsService.IsInCurrentMonth)
             .Sum(expense => expense.Amount);
 
         CategoryCountLabel.Text = _categories.Count.ToString();
@@ -74,16 +101,12 @@ public partial class MainPage : ContentPage
         MonthlyAverageLabel.Text = monthlyAverage.ToString("C");
         BudgetAlertsLabel.Text = BuildBudgetAlertText(activeAlerts);
         BudgetAlertsLabel.TextColor = activeAlerts.Count == 0 ? Colors.ForestGreen : Colors.DarkOrange;
+        ExpenseSummaryCaptionLabel.Text = BuildExpenseSummaryCaption(_categorySummaries);
         FamilyOverviewLabel.Text = BuildFamilyOverviewText(user.UserId);
 
-        _recentExpenses.Clear();
-        foreach (var expense in allExpenses
-                     .OrderByDescending(expense => expense.Date)
-                     .Take(6)
-                     .Select(expense => new ExpenseRowViewModel(expense)))
-        {
-            _recentExpenses.Add(expense);
-        }
+        RefreshExpenseFilterOptions(selectedCategoryId);
+        RestoreExpenseSortSelection(selectedSortOption);
+        RefreshExpenseInsights();
     }
 
     private async void OnAddCategoryClicked(object sender, EventArgs e)
@@ -164,6 +187,7 @@ public partial class MainPage : ContentPage
 
         if (previousCategory is not null && updatedCategory is not null)
         {
+            // Pass the desktop popup method into the shared alert service.
             await BudgetAlertService.NotifyIfThresholdCrossedAsync(
                 previousCategory,
                 updatedCategory,
@@ -300,6 +324,111 @@ public partial class MainPage : ContentPage
             : string.Join(Environment.NewLine, lines);
     }
 
+    private void RefreshExpenseFilterOptions(int? selectedCategoryId)
+    {
+        _expenseFilterOptions.Clear();
+        _expenseFilterOptions.Add(new ExpenseFilterOptionViewModel(null, "All categories"));
+        _expenseFilterOptions.AddRange(_allCategories.Select(category =>
+            new ExpenseFilterOptionViewModel(category.CategoryId, category.Name)));
+
+        ExpenseCategoryFilterPicker.ItemsSource = null;
+        ExpenseCategoryFilterPicker.ItemsSource = _expenseFilterOptions;
+
+        ExpenseCategoryFilterPicker.SelectedItem = _expenseFilterOptions
+            .FirstOrDefault(option => option.CategoryId == selectedCategoryId)
+            ?? _expenseFilterOptions[0];
+    }
+
+    private void RestoreExpenseSortSelection(ExpenseSortOption sortOption)
+    {
+        ExpenseSortPicker.SelectedItem = _expenseSortOptions
+            .FirstOrDefault(option => option.SortOption == sortOption)
+            ?? _expenseSortOptions[0];
+    }
+
+    private void RefreshExpenseInsights()
+    {
+        var selectedCategory = ExpenseCategoryFilterPicker.SelectedItem as ExpenseFilterOptionViewModel;
+        var selectedSort = ExpenseSortPicker.SelectedItem as ExpenseSortOptionViewModel;
+        if (selectedSort is null)
+        {
+            return;
+        }
+
+        var queryOptions = new ExpenseQueryOptions
+        {
+            CategoryId = selectedCategory?.CategoryId,
+            SortOption = selectedSort.SortOption
+        };
+
+        // This delegate keeps the filter/sort logic separate from the UI widgets.
+        ExpenseInsightsService.NotifyInsightsUpdated(
+            _allCategories,
+            _allExpenses,
+            queryOptions,
+            selectedCategory?.Label ?? "All categories",
+            selectedSort.Label,
+            ApplyExpenseInsightsSnapshot);
+    }
+
+    private void ApplyExpenseInsightsSnapshot(ExpenseInsightsSnapshot snapshot)
+    {
+        _categorySummaries.Clear();
+        foreach (var summary in snapshot.CategorySummaries.Select(summary => new CategoryExpenseSummaryViewModel(summary)))
+        {
+            _categorySummaries.Add(summary);
+        }
+
+        var displayedExpenses = snapshot.FilteredExpenses.Take(6).ToList();
+
+        _recentExpenses.Clear();
+        foreach (var expense in displayedExpenses.Select(expense => new ExpenseRowViewModel(expense)))
+        {
+            _recentExpenses.Add(expense);
+        }
+
+        ExpenseSummaryCaptionLabel.Text = BuildExpenseSummaryCaption(_categorySummaries);
+        ExpenseExplorerCaptionLabel.Text = BuildExpenseExplorerCaption(
+            snapshot.ScopeLabel,
+            snapshot.SortLabel,
+            snapshot.FilteredExpenses.Count,
+            displayedExpenses.Count);
+    }
+
+    private static string BuildExpenseExplorerCaption(
+        string scopeLabel,
+        string sortLabel,
+        int matchingExpenseCount,
+        int displayedExpenseCount)
+    {
+        return $"{displayedExpenseCount} of {matchingExpenseCount} expense{(matchingExpenseCount == 1 ? "" : "s")} · {scopeLabel} · sorted by {sortLabel.ToLowerInvariant()}";
+    }
+
+    private static string BuildExpenseSummaryCaption(IReadOnlyCollection<CategoryExpenseSummaryViewModel> summaries)
+    {
+        if (summaries.Count == 0)
+        {
+            return "Add expenses to calculate totals and monthly averages.";
+        }
+
+        if (summaries.All(summary => summary.TotalSpent <= 0))
+        {
+            return "No spending recorded yet.";
+        }
+
+        var topCategory = summaries
+            .OrderByDescending(summary => summary.TotalSpent)
+            .ThenBy(summary => summary.CategoryName)
+            .First();
+
+        return $"Top spending category: {topCategory.CategoryName} at {topCategory.TotalSpentDisplay}.";
+    }
+
+    private void OnExpenseFilterChanged(object? sender, EventArgs e)
+    {
+        RefreshExpenseInsights();
+    }
+
     private Task ShowBudgetAlertNotificationAsync(BudgetAlertNotification notification)
     {
         return DisplayAlert(notification.Title, notification.Message, "OK");
@@ -327,7 +456,7 @@ public sealed class CategoryCardViewModel
         Name = category.Name;
         RemainingBudget = category.RemainingBudget;
         WarningThreshold = category.WarningThreshold;
-        MonthlyAverage = SpendingSummaryCalculator.CalculateMonthlyAverage(expenses);
+        MonthlyAverage = ExpenseInsightsService.CalculateMonthlyAverage(expenses);
         Expenses = new ObservableCollection<ExpenseRowViewModel>(
             expenses.OrderByDescending(expense => expense.Date).Select(expense => new ExpenseRowViewModel(expense)));
     }
@@ -362,6 +491,27 @@ public sealed class CategoryCardViewModel
     public ObservableCollection<ExpenseRowViewModel> Expenses { get; }
 }
 
+public sealed class CategoryExpenseSummaryViewModel
+{
+    public CategoryExpenseSummaryViewModel(CategoryExpenseSummary summary)
+    {
+        CategoryId = summary.CategoryId;
+        CategoryName = summary.CategoryName;
+        TotalSpent = summary.TotalExpenses;
+        MonthlyAverage = summary.MonthlyAverage;
+        ExpenseCount = summary.ExpenseCount;
+    }
+
+    public int CategoryId { get; }
+    public string CategoryName { get; }
+    public double TotalSpent { get; }
+    public double MonthlyAverage { get; }
+    public int ExpenseCount { get; }
+    public string TotalSpentDisplay => TotalSpent.ToString("C");
+    public string MonthlyAverageDisplay => $"Monthly avg {MonthlyAverage:C}";
+    public string ExpenseCountDisplay => $"{ExpenseCount} expense{(ExpenseCount == 1 ? "" : "s")}";
+}
+
 public sealed class ExpenseRowViewModel
 {
     public ExpenseRowViewModel(Expense expense)
@@ -379,28 +529,26 @@ public sealed class ExpenseRowViewModel
     public string Date { get; }
 }
 
-public static class SpendingSummaryCalculator
+public sealed class ExpenseFilterOptionViewModel
 {
-    public static double CalculateMonthlyAverage(IEnumerable<Expense> expenses)
+    public ExpenseFilterOptionViewModel(int? categoryId, string label)
     {
-        return expenses
-            .GroupBy(GetExpenseMonth)
-            .Select(month => month.Sum(expense => expense.Amount))
-            .DefaultIfEmpty(0)
-            .Average();
+        CategoryId = categoryId;
+        Label = label;
     }
 
-    private static string GetExpenseMonth(Expense expense)
+    public int? CategoryId { get; }
+    public string Label { get; }
+}
+
+public sealed class ExpenseSortOptionViewModel
+{
+    public ExpenseSortOptionViewModel(ExpenseSortOption sortOption, string label)
     {
-        return DateTime.TryParse(expense.Date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
-            ? date.ToString("yyyy-MM", CultureInfo.InvariantCulture)
-            : expense.Date;
+        SortOption = sortOption;
+        Label = label;
     }
 
-    public static bool IsInCurrentMonth(Expense expense)
-    {
-        return DateTime.TryParse(expense.Date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date) &&
-               date.Year == DateTime.Now.Year &&
-               date.Month == DateTime.Now.Month;
-    }
+    public ExpenseSortOption SortOption { get; }
+    public string Label { get; }
 }

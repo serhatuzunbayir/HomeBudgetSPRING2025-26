@@ -16,10 +16,12 @@ public sealed class BudgetAlertNotification
         : $"{CategoryName} has {RemainingBudget:C} remaining, which is below your alert threshold of {WarningThreshold:C}.";
 }
 
+// The desktop page passes a UI method through this delegate when an alert must be shown.
 public delegate Task BudgetAlertRaisedHandler(BudgetAlertNotification notification);
 
 public static class BudgetAlertService
 {
+    // Finds all categories that are already in an alert state.
     public static IReadOnlyList<BudgetAlertNotification> GetActiveAlerts(IEnumerable<Category> categories)
     {
         return categories
@@ -35,6 +37,7 @@ public static class BudgetAlertService
         Category currentCategory,
         BudgetAlertRaisedHandler onAlertRaised)
     {
+        // This delegate is only called when the category crosses into the alert zone.
         var notification = EvaluateThresholdCrossing(previousCategory, currentCategory);
         if (notification is null)
         {

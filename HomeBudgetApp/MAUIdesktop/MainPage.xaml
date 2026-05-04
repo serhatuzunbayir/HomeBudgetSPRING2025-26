@@ -198,7 +198,40 @@
                                 <Label Text="Analytics" Style="{StaticResource SectionTitleStyle}" />
                                 <Label Text="Monthly Average" Style="{StaticResource MutedLabelStyle}" />
                                 <Label x:Name="MonthlyAverageLabel" Style="{StaticResource MetricValueStyle}" />
-                                <Label Text="Where money goes is summarized by each category card." Style="{StaticResource MutedLabelStyle}" />
+                                <Label Text="Real-time LINQ summaries are calculated from your stored expenses." Style="{StaticResource MutedLabelStyle}" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <VerticalStackLayout Spacing="10">
+                                <Label Text="Expense Summary by Category" Style="{StaticResource SectionTitleStyle}" />
+                                <Label x:Name="ExpenseSummaryCaptionLabel"
+                                       Style="{StaticResource MutedLabelStyle}" />
+                                <CollectionView x:Name="ExpenseSummaryCollection"
+                                                EmptyView="No categories yet. Add a category to see grouped spending insights.">
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate x:DataType="local:CategoryExpenseSummaryViewModel">
+                                            <Grid Padding="0,8"
+                                                  ColumnDefinitions="*,Auto"
+                                                  ColumnSpacing="10">
+                                                <VerticalStackLayout Spacing="1">
+                                                    <Label Text="{Binding CategoryName}" FontAttributes="Bold" />
+                                                    <Label Text="{Binding ExpenseCountDisplay}" Style="{StaticResource MutedLabelStyle}" />
+                                                </VerticalStackLayout>
+                                                <VerticalStackLayout Grid.Column="1"
+                                                                     Spacing="1"
+                                                                     HorizontalOptions="End">
+                                                    <Label Text="{Binding TotalSpentDisplay}"
+                                                           FontAttributes="Bold"
+                                                           HorizontalTextAlignment="End" />
+                                                    <Label Text="{Binding MonthlyAverageDisplay}"
+                                                           Style="{StaticResource MutedLabelStyle}"
+                                                           HorizontalTextAlignment="End" />
+                                                </VerticalStackLayout>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
                             </VerticalStackLayout>
                         </Border>
 
@@ -212,9 +245,23 @@
 
                         <Border Style="{StaticResource CardBorderStyle}">
                             <VerticalStackLayout Spacing="10">
-                                <Label Text="Recent Expenses" Style="{StaticResource SectionTitleStyle}" />
+                                <Label Text="Expense Explorer" Style="{StaticResource SectionTitleStyle}" />
+                                <Grid ColumnDefinitions="*,*"
+                                      ColumnSpacing="10">
+                                    <Picker x:Name="ExpenseCategoryFilterPicker"
+                                            Title="Filter by category"
+                                            ItemDisplayBinding="{Binding Label}"
+                                            SelectedIndexChanged="OnExpenseFilterChanged" />
+                                    <Picker Grid.Column="1"
+                                            x:Name="ExpenseSortPicker"
+                                            Title="Sort expenses"
+                                            ItemDisplayBinding="{Binding Label}"
+                                            SelectedIndexChanged="OnExpenseFilterChanged" />
+                                </Grid>
+                                <Label x:Name="ExpenseExplorerCaptionLabel"
+                                       Style="{StaticResource MutedLabelStyle}" />
                                 <CollectionView x:Name="RecentExpensesCollection"
-                                                EmptyView="No expenses added yet.">
+                                                EmptyView="No matching expenses yet.">
                                     <CollectionView.ItemTemplate>
                                         <DataTemplate x:DataType="local:ExpenseRowViewModel">
                                             <Grid Padding="0,8" ColumnDefinitions="*,Auto" ColumnSpacing="10">
