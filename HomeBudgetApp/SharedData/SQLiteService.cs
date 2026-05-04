@@ -86,6 +86,7 @@ public class DatabaseRepository
             userId INTEGER NOT NULL,
             name TEXT NOT NULL,
             budget REAL NOT NULL DEFAULT 0,
+            warningThreshold REAL NULL,
 
             FOREIGN KEY (userId)
             REFERENCES Users(userId)
@@ -155,6 +156,26 @@ public class DatabaseRepository
         ";
 
         command.ExecuteNonQuery();
+        EnsureCategoryWarningThresholdColumn(connection);
+    }
+
+    private static void EnsureCategoryWarningThresholdColumn(SqliteConnection connection)
+    {
+        using var checkCommand = connection.CreateCommand();
+        checkCommand.CommandText = "PRAGMA table_info(Categories);";
+
+        using var reader = checkCommand.ExecuteReader();
+        while (reader.Read())
+        {
+            if (string.Equals(reader.GetString(1), "warningThreshold", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+        }
+
+        using var alterCommand = connection.CreateCommand();
+        alterCommand.CommandText = "ALTER TABLE Categories ADD COLUMN warningThreshold REAL NULL;";
+        alterCommand.ExecuteNonQuery();
     }
 
     private bool FamilyMemberExists(SqliteConnection connection, int familyId, int userId)
@@ -571,14 +592,14 @@ public class DatabaseRepository
 
     // ---------------- CATEGORIES ----------------
 
-    public int AddCategory(int userId, string name, double remainingBudget)
+    public int AddCategory(int userId, string name, double remainingBudget, double? warningThreshold = null)
     {
         using var connection = GetConnection();
         using var command = connection.CreateCommand();
 
         command.CommandText = @"
-        INSERT INTO Categories (userId, name, budget)
-        VALUES ($userId, $name, $budget);
+        INSERT INTO Categories (userId, name, budget, warningThreshold)
+        VALUES ($userId, $name, $budget, $warningThreshold);
 
         SELECT last_insert_rowid();
         ";
@@ -586,6 +607,7 @@ public class DatabaseRepository
         command.Parameters.AddWithValue("$userId", userId);
         command.Parameters.AddWithValue("$name", name);
         command.Parameters.AddWithValue("$budget", remainingBudget);
+        command.Parameters.AddWithValue("$warningThreshold", (object?)warningThreshold ?? DBNull.Value);
 
         return Convert.ToInt32(command.ExecuteScalar());
     }
@@ -596,7 +618,7 @@ public class DatabaseRepository
         using var command = connection.CreateCommand();
 
         command.CommandText = @"
-        SELECT categoryId, userId, name, budget
+        SELECT categoryId, userId, name, budget, warningThreshold
         FROM Categories
         WHERE categoryId = $categoryId
           AND userId = $userId;
@@ -615,7 +637,8 @@ public class DatabaseRepository
             CategoryId = reader.GetInt32(0),
             UserId = reader.GetInt32(1),
             Name = reader.GetString(2),
-            Budget = reader.GetDouble(3)
+            Budget = reader.GetDouble(3),
+            WarningThreshold = reader.IsDBNull(4) ? null : reader.GetDouble(4)
         };
     }
 
@@ -627,7 +650,7 @@ public class DatabaseRepository
         using var command = connection.CreateCommand();
 
         command.CommandText = @"
-        SELECT categoryId, userId, name, budget
+        SELECT categoryId, userId, name, budget, warningThreshold
         FROM Categories
         WHERE userId = $userId
         ORDER BY name ASC;
@@ -644,14 +667,15 @@ public class DatabaseRepository
                 CategoryId = reader.GetInt32(0),
                 UserId = reader.GetInt32(1),
                 Name = reader.GetString(2),
-                Budget = reader.GetDouble(3)
+                Budget = reader.GetDouble(3),
+                WarningThreshold = reader.IsDBNull(4) ? null : reader.GetDouble(4)
             });
         }
 
         return categories;
     }
 
-    public void UpdateCategory(int categoryId, int userId, string name, double remainingBudget)
+    public void UpdateCategory(int categoryId, int userId, string name, double remainingBudget, double? warningThreshold = null)
     {
         using var connection = GetConnection();
         using var command = connection.CreateCommand();
@@ -659,7 +683,8 @@ public class DatabaseRepository
         command.CommandText = @"
         UPDATE Categories
         SET name = $name,
-            budget = $budget
+            budget = $budget,
+            warningThreshold = $warningThreshold
         WHERE categoryId = $categoryId
           AND userId = $userId;
         ";
@@ -668,6 +693,7 @@ public class DatabaseRepository
         command.Parameters.AddWithValue("$userId", userId);
         command.Parameters.AddWithValue("$name", name);
         command.Parameters.AddWithValue("$budget", remainingBudget);
+        command.Parameters.AddWithValue("$warningThreshold", (object?)warningThreshold ?? DBNull.Value);
 
         command.ExecuteNonQuery();
     }

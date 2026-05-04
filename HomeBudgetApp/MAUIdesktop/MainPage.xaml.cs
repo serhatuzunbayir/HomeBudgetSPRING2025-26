@@ -61,6 +61,7 @@ public partial class MainPage : ContentPage
         var totalSpent = _categories.Sum(category => category.Spent);
         var remainingBudget = _categories.Sum(category => category.Remaining);
         var monthlyAverage = SpendingSummaryCalculator.CalculateMonthlyAverage(allExpenses);
+        var activeAlerts = BudgetAlertService.GetActiveAlerts(_categories.Select(category => category.Category));
         var thisMonthExpenses = allExpenses
             .Where(SpendingSummaryCalculator.IsInCurrentMonth)
             .Sum(expense => expense.Amount);
@@ -71,7 +72,8 @@ public partial class MainPage : ContentPage
         RemainingBudgetLabel.Text = remainingBudget.ToString("C");
         ThisMonthExpensesLabel.Text = thisMonthExpenses.ToString("C");
         MonthlyAverageLabel.Text = monthlyAverage.ToString("C");
-        BudgetAlertsLabel.Text = BuildBudgetAlertText(_categories);
+        BudgetAlertsLabel.Text = BuildBudgetAlertText(activeAlerts);
+        BudgetAlertsLabel.TextColor = activeAlerts.Count == 0 ? Colors.ForestGreen : Colors.DarkOrange;
         FamilyOverviewLabel.Text = BuildFamilyOverviewText(user.UserId);
 
         _recentExpenses.Clear();
@@ -107,9 +109,23 @@ public partial class MainPage : ContentPage
             return;
         }
 
+        var thresholdText = await DisplayPromptAsync(
+            "New category",
+            "Alert threshold for remaining budget (optional)",
+            "Add",
+            "Skip",
+            budget > 0 ? (budget * 0.2).ToString("0.##", CultureInfo.InvariantCulture) : "",
+            keyboard: Keyboard.Numeric);
+
+        if (!TryReadOptionalMoney(thresholdText, out var warningThreshold) || warningThreshold < 0)
+        {
+            await DisplayAlert("Invalid threshold", "Enter a valid positive number or leave it blank.", "OK");
+            return;
+        }
+
         try
         {
-            _db.AddCategory(user.UserId, name, budget);
+            _db.AddCategory(user.UserId, name, budget, warningThreshold);
             LoadDashboard();
         }
         catch (Exception ex)
@@ -141,8 +157,18 @@ public partial class MainPage : ContentPage
             return;
         }
 
+        var previousCategory = _db.GetCategory(category.CategoryId, user.UserId);
         _db.AddExpense(user.UserId, category.CategoryId, description, amount, DateTime.Now.ToString("yyyy-MM-dd"));
+        var updatedCategory = _db.GetCategory(category.CategoryId, user.UserId);
         LoadDashboard();
+
+        if (previousCategory is not null && updatedCategory is not null)
+        {
+            await BudgetAlertService.NotifyIfThresholdCrossedAsync(
+                previousCategory,
+                updatedCategory,
+                ShowBudgetAlertNotificationAsync);
+        }
     }
 
     private async void OnDeleteCategoryClicked(object sender, EventArgs e)
@@ -165,6 +191,37 @@ public partial class MainPage : ContentPage
         }
 
         _db.DeleteCategory(category.CategoryId, user.UserId);
+        LoadDashboard();
+    }
+
+    private async void OnSetAlertThresholdClicked(object sender, EventArgs e)
+    {
+        var user = AppSession.CurrentUser;
+        if (user is null || (sender as Button)?.CommandParameter is not CategoryCardViewModel category)
+        {
+            return;
+        }
+
+        var thresholdText = await DisplayPromptAsync(
+            "Budget alert",
+            $"Warning threshold for {category.Name} (leave blank to disable)",
+            "Save",
+            "Cancel",
+            category.WarningThreshold?.ToString("0.##", CultureInfo.InvariantCulture) ?? "",
+            keyboard: Keyboard.Numeric);
+
+        if (thresholdText is null)
+        {
+            return;
+        }
+
+        if (!TryReadOptionalMoney(thresholdText, out var warningThreshold) || warningThreshold < 0)
+        {
+            await DisplayAlert("Invalid threshold", "Enter a valid positive number or leave it blank.", "OK");
+            return;
+        }
+
+        _db.UpdateCategory(category.CategoryId, user.UserId, category.Name, category.RemainingBudget, warningThreshold);
         LoadDashboard();
     }
 
@@ -212,18 +269,40 @@ public partial class MainPage : ContentPage
             out amount);
     }
 
-    private static string BuildBudgetAlertText(IEnumerable<CategoryCardViewModel> categories)
+    private static bool TryReadOptionalMoney(string? value, out double? amount)
     {
-        var alerts = categories
-            .Where(category => category.Budget > 0 && category.Remaining <= category.Budget * 0.2)
-            .Select(category => category.Remaining < 0
-                ? $"{category.Name} is over budget"
-                : $"{category.Name} is close to its limit")
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            amount = null;
+            return true;
+        }
+
+        if (TryReadMoney(value, out var parsedAmount))
+        {
+            amount = parsedAmount;
+            return true;
+        }
+
+        amount = null;
+        return false;
+    }
+
+    private static string BuildBudgetAlertText(IReadOnlyList<BudgetAlertNotification> alerts)
+    {
+        var lines = alerts
+            .Select(alert => alert.IsOverBudget
+                ? $"{alert.CategoryName} is over budget by {Math.Abs(alert.RemainingBudget):C}."
+                : $"{alert.CategoryName} dropped below {alert.WarningThreshold:C} and has {alert.RemainingBudget:C} left.")
             .ToList();
 
-        return alerts.Count == 0
+        return lines.Count == 0
             ? "All categories are within a healthy range."
-            : string.Join(Environment.NewLine, alerts);
+            : string.Join(Environment.NewLine, lines);
+    }
+
+    private Task ShowBudgetAlertNotificationAsync(BudgetAlertNotification notification)
+    {
+        return DisplayAlert(notification.Title, notification.Message, "OK");
     }
 
     private string BuildFamilyOverviewText(int userId)
@@ -243,17 +322,21 @@ public sealed class CategoryCardViewModel
 {
     public CategoryCardViewModel(Category category, IReadOnlyCollection<Expense> expenses)
     {
+        Category = category;
         CategoryId = category.CategoryId;
         Name = category.Name;
         RemainingBudget = category.RemainingBudget;
+        WarningThreshold = category.WarningThreshold;
         MonthlyAverage = SpendingSummaryCalculator.CalculateMonthlyAverage(expenses);
         Expenses = new ObservableCollection<ExpenseRowViewModel>(
             expenses.OrderByDescending(expense => expense.Date).Select(expense => new ExpenseRowViewModel(expense)));
     }
 
+    public Category Category { get; }
     public int CategoryId { get; }
     public string Name { get; }
     public double RemainingBudget { get; }
+    public double? WarningThreshold { get; }
     public double Budget => RemainingBudget + Spent;
     public double Spent => Expenses.Sum(expense => expense.Amount);
     public double MonthlyAverage { get; }
@@ -263,14 +346,17 @@ public sealed class CategoryCardViewModel
     public string SpentDisplay => $"Spent: {Spent:C}";
     public string MonthlyAverageDisplay => $"Monthly avg: {MonthlyAverage:C}";
     public string RemainingDisplay => $"Remaining: {Remaining:C}";
+    public string AlertThresholdDisplay => WarningThreshold.HasValue
+        ? $"Alert below {WarningThreshold.Value:C}"
+        : "Alert disabled";
     public string StatusDisplay => Remaining < 0
         ? "Over budget"
-        : Budget > 0 && Remaining <= Budget * 0.2
-            ? "Close to limit"
+        : WarningThreshold.HasValue && Remaining < WarningThreshold.Value
+            ? "Below alert threshold"
             : "On track";
     public Color StatusColor => Remaining < 0
         ? Color.FromArgb("#B91C1C")
-        : Budget > 0 && Remaining <= Budget * 0.2
+        : WarningThreshold.HasValue && Remaining < WarningThreshold.Value
             ? Color.FromArgb("#B45309")
             : Color.FromArgb("#15803D");
     public ObservableCollection<ExpenseRowViewModel> Expenses { get; }

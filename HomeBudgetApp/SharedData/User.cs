@@ -47,6 +47,7 @@ public class Category
     public int UserId { get; set; }
     public string Name { get; set; } = "";
     public double Budget { get; set; }
+    public double? WarningThreshold { get; set; }
 
     public double RemainingBudget
     {

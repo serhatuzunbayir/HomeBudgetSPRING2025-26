@@ -113,13 +113,15 @@
                                 <DataTemplate x:DataType="local:CategoryCardViewModel">
                                     <Border Style="{StaticResource CardBorderStyle}">
                                         <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
-                                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                            <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
                                                 <VerticalStackLayout Spacing="2">
                                                     <Label Text="{Binding Name}" FontSize="18" FontAttributes="Bold" />
                                                     <Label Text="{Binding StatusDisplay}"
                                                            FontSize="13"
                                                            FontAttributes="Bold"
                                                            TextColor="{Binding StatusColor}" />
+                                                    <Label Text="{Binding AlertThresholdDisplay}"
+                                                           Style="{StaticResource MutedLabelStyle}" />
                                                 </VerticalStackLayout>
 
                                                 <Button Grid.Column="1"
@@ -127,6 +129,11 @@
                                                         Clicked="OnAddExpenseClicked"
                                                         CommandParameter="{Binding .}" />
                                                 <Button Grid.Column="2"
+                                                        Text="Alert"
+                                                        Clicked="OnSetAlertThresholdClicked"
+                                                        CommandParameter="{Binding .}"
+                                                        Style="{StaticResource SecondaryButtonStyle}" />
+                                                <Button Grid.Column="3"
                                                         Text="Delete"
                                                         Clicked="OnDeleteCategoryClicked"
                                                         CommandParameter="{Binding .}"
