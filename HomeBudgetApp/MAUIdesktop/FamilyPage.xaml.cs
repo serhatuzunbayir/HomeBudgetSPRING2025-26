@@ -14,6 +14,7 @@ public partial class FamilyPage : ContentPage
     private readonly List<FamilyCategoryFilterOptionViewModel> _familyCategoryFilterOptions = new();
     private Family? _currentFamily;
     private bool _currentUserCanManageMembers;
+    private bool _currentUserCanDeleteFamily;
 
     public ObservableCollection<FamilyMemberViewModel> FamilyMembers => _members;
     public ObservableCollection<FamilyInvitationViewModel> PendingInvitations => _invitations;
@@ -132,6 +133,51 @@ public partial class FamilyPage : ContentPage
         }
     }
 
+    private async void OnDeleteFamilyClicked(object sender, EventArgs e)
+    {
+        if (_currentFamily is null || !_currentUserCanDeleteFamily)
+        {
+            await DisplayAlert("Permission required", "Only the family owner can delete the family workspace.", "OK");
+            return;
+        }
+
+        var familyName = _currentFamily.Name;
+        var confirmed = await DisplayAlert(
+            "Delete family",
+            $"Delete {familyName}? This removes the family workspace, memberships, and pending invitations. Personal categories and expenses stay in each account.",
+            "Continue",
+            "Cancel");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var typedName = await DisplayPromptAsync(
+            "Confirm delete",
+            $"Type \"{familyName}\" to delete this family.",
+            "Delete",
+            "Cancel",
+            familyName);
+
+        if (!string.Equals((typedName ?? "").Trim(), familyName, StringComparison.Ordinal))
+        {
+            await DisplayAlert("Delete cancelled", "The family name did not match.", "OK");
+            return;
+        }
+
+        try
+        {
+            _db.DeleteFamily(_currentFamily.FamilyId);
+            await DisplayAlert("Family deleted", $"{familyName} was deleted.", "OK");
+            LoadFamily();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Family not deleted", ex.Message, "OK");
+        }
+    }
+
     private async void OnRemoveMemberClicked(object sender, EventArgs e)
     {
         if (!_currentUserCanManageMembers || (sender as Button)?.CommandParameter is not FamilyMemberViewModel member)
@@ -210,6 +256,7 @@ public partial class FamilyPage : ContentPage
         if (_currentFamily is null)
         {
             _currentUserCanManageMembers = false;
+            _currentUserCanDeleteFamily = false;
             FamilyStatusLabel.Text = "Create a family to invite members and manage shared access.";
             NoFamilyPanel.IsVisible = true;
             FamilyWorkspace.IsVisible = false;
@@ -228,10 +275,12 @@ public partial class FamilyPage : ContentPage
         var currentMember = familyUsers.FirstOrDefault(member => member.UserId == user.UserId);
 
         _currentUserCanManageMembers = IsFamilyAdmin(currentMember?.Role);
+        _currentUserCanDeleteFamily = IsFamilyOwner(currentMember?.Role);
         FamilyStatusLabel.Text = "Manage your family members and shared access.";
         FamilyNameLabel.Text = _currentFamily.Name;
         FamilyRoleLabel.Text = $"Your role: {currentMember?.Role ?? "Member"}";
         InviteButton.IsVisible = _currentUserCanManageMembers;
+        DeleteFamilyButton.IsVisible = _currentUserCanDeleteFamily;
         NoFamilyPanel.IsVisible = false;
         FamilyWorkspace.IsVisible = true;
         FamilyBudgetOverviewPanel.IsVisible = _currentUserCanManageMembers;
@@ -257,6 +306,11 @@ public partial class FamilyPage : ContentPage
     {
         return string.Equals(role, "Owner", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsFamilyOwner(string? role)
+    {
+        return string.Equals(role, "Owner", StringComparison.OrdinalIgnoreCase);
     }
 
     private void LoadFamilyExpenseFilterOptions(IReadOnlyCollection<FamilyUser> familyUsers)

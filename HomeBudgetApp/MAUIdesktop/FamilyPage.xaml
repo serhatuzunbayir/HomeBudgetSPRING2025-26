@@ -113,11 +113,17 @@
                                     <Label Text="Admins can invite registered users and remove members when needed."
                                            Style="{StaticResource MutedLabelStyle}" />
                                 </VerticalStackLayout>
-                                <Button x:Name="InviteButton"
-                                        Grid.Column="1"
-                                        Text="Invite member"
-                                        Clicked="OnInviteMemberClicked"
-                                        VerticalOptions="Center" />
+                                <HorizontalStackLayout Grid.Column="1"
+                                                       Spacing="10"
+                                                       VerticalOptions="Center">
+                                    <Button x:Name="InviteButton"
+                                            Text="Invite member"
+                                            Clicked="OnInviteMemberClicked" />
+                                    <Button x:Name="DeleteFamilyButton"
+                                            Text="Delete family"
+                                            Clicked="OnDeleteFamilyClicked"
+                                            Style="{StaticResource DangerButtonStyle}" />
+                                </HorizontalStackLayout>
                             </Grid>
                         </Border>
 

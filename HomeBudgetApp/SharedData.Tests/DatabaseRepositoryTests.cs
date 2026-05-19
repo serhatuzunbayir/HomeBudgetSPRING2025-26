@@ -107,6 +107,29 @@ public sealed class DatabaseRepositoryTests
     }
 
     [Fact]
+    public void DeleteFamily_RemovesFamilyAccessButKeepsPersonalExpenses()
+    {
+        var db = CreateRepository();
+        var ownerId = db.AddUser("owner@example.com", "Owner", "secret1");
+        var memberId = db.AddUser("member@example.com", "Member", "secret1");
+        var invitedId = db.AddUser("invited@example.com", "Invited", "secret1");
+        var familyId = db.CreateFamily(ownerId, "Yilmaz Family");
+        db.AddUserToFamily(memberId, familyId, "Member");
+        db.AddFamilyInvitation(familyId, invitedId, ownerId);
+
+        var categoryId = db.AddCategory(memberId, "Food", 1000);
+        db.AddExpense(memberId, categoryId, "Groceries", 90, "2026-05-01");
+
+        db.DeleteFamily(familyId);
+
+        Assert.Null(db.GetFamily(familyId));
+        Assert.Null(db.GetFamilyByUser(ownerId));
+        Assert.Null(db.GetFamilyByUser(memberId));
+        Assert.Empty(db.GetPendingFamilyInvitations(invitedId));
+        Assert.Single(db.GetAllExpensesByUser(memberId));
+    }
+
+    [Fact]
     public void Goals_FireReachedAndMissedEventsOnlyOnce()
     {
         var db = CreateRepository();
