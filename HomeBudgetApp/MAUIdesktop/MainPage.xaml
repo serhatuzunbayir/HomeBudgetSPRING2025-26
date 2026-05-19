@@ -211,10 +211,24 @@
 
                         <Border Style="{StaticResource CardBorderStyle}">
                             <VerticalStackLayout Spacing="10">
-                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                    <Label Text="Spending Goals" Style="{StaticResource SectionTitleStyle}" />
-                                    <Button Grid.Column="1"
-                                            Text="Add goal"
+                                <Label Text="Spending Goals" Style="{StaticResource SectionTitleStyle}" />
+                                <Grid ColumnDefinitions="*,*"
+                                      RowDefinitions="Auto,Auto"
+                                      ColumnSpacing="8"
+                                      RowSpacing="8">
+                                    <Entry x:Name="GoalNameEntry"
+                                           Placeholder="Goal name" />
+                                    <Entry Grid.Column="1"
+                                           x:Name="GoalTargetAmountEntry"
+                                           Placeholder="Max amount"
+                                           Keyboard="Numeric" />
+                                    <DatePicker Grid.Row="1"
+                                                x:Name="GoalDeadlineDatePicker"
+                                                Format="MMM d, yyyy"
+                                                VerticalOptions="Center" />
+                                    <Button Grid.Row="1"
+                                            Grid.Column="1"
+                                            Text="Add"
                                             Clicked="OnAddGoalClicked"
                                             VerticalOptions="Center" />
                                 </Grid>

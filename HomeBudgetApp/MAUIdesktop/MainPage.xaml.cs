@@ -41,6 +41,8 @@ public partial class MainPage : ContentPage
 
         ExpenseSortPicker.ItemsSource = _expenseSortOptions;
         ExpenseSortPicker.SelectedItem = _expenseSortOptions[0];
+        GoalDeadlineDatePicker.MinimumDate = DateTime.Today;
+        GoalDeadlineDatePicker.Date = DateTime.Today.AddMonths(1);
     }
 
     protected override void OnAppearing()
@@ -301,39 +303,24 @@ public partial class MainPage : ContentPage
             return;
         }
 
-        var name = await DisplayPromptAsync("New spending goal", "Goal name", "Next", "Cancel", "May savings cap");
-        name = (name ?? "").Trim();
+        var name = (GoalNameEntry.Text ?? "").Trim();
         if (string.IsNullOrWhiteSpace(name))
         {
+            await DisplayAlert("Goal name required", "Enter a name for this spending goal.", "OK");
             return;
         }
 
-        var targetText = await DisplayPromptAsync("New spending goal", "Maximum spending amount", "Next", "Cancel", "1000", keyboard: Keyboard.Numeric);
-        if (!TryReadMoney(targetText, out var targetAmount) || targetAmount <= 0)
+        if (!TryReadMoney(GoalTargetAmountEntry.Text, out var targetAmount) || targetAmount <= 0)
         {
             await DisplayAlert("Invalid amount", "Please enter a spending cap greater than zero.", "OK");
             return;
         }
 
-        var deadlineText = await DisplayPromptAsync(
-            "New spending goal",
-            "Deadline date (yyyy-MM-dd)",
-            "Create",
-            "Cancel",
-            DateTime.Now.AddMonths(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-
-        if (!DateTime.TryParseExact(
-                deadlineText,
-                "yyyy-MM-dd",
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.None,
-                out var deadline))
-        {
-            await DisplayAlert("Invalid deadline", "Please enter a date like 2026-06-30.", "OK");
-            return;
-        }
-
+        var deadline = GoalDeadlineDatePicker.Date;
         _db.AddGoal(user.UserId, name, targetAmount, deadline);
+        GoalNameEntry.Text = "";
+        GoalTargetAmountEntry.Text = "";
+        GoalDeadlineDatePicker.Date = DateTime.Today.AddMonths(1);
         LoadDashboard();
     }
 

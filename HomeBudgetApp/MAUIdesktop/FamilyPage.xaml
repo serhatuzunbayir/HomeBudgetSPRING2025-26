@@ -173,8 +173,10 @@
                     <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
                         <VerticalStackLayout Spacing="12">
                             <Label Text="Family Expenses" Style="{StaticResource SectionTitleStyle}" />
-                            <Grid ColumnDefinitions="*,*,*,Auto"
-                                  ColumnSpacing="10">
+                            <Grid ColumnDefinitions="*,*"
+                                  RowDefinitions="Auto,Auto"
+                                  ColumnSpacing="10"
+                                  RowSpacing="8">
                                 <Picker x:Name="FamilyMemberFilterPicker"
                                         Title="Member"
                                         ItemDisplayBinding="{Binding Label}" />
@@ -182,17 +184,38 @@
                                         x:Name="FamilyCategoryFilterPicker"
                                         Title="Category"
                                         ItemDisplayBinding="{Binding Label}" />
-                                <Grid Grid.Column="2" ColumnDefinitions="*,*" ColumnSpacing="8">
-                                    <Entry x:Name="FamilyExpenseStartDateEntry" Placeholder="Start yyyy-MM-dd" />
-                                    <Entry Grid.Column="1"
-                                           x:Name="FamilyExpenseEndDateEntry"
-                                           Placeholder="End yyyy-MM-dd" />
-                                </Grid>
-                                <Button Grid.Column="3"
-                                        Text="Apply"
+                                <HorizontalStackLayout Grid.Row="1"
+                                                       Spacing="4"
+                                                       VerticalOptions="Center">
+                                    <CheckBox x:Name="FamilyExpenseUseStartDateCheckBox"
+                                              CheckedChanged="OnFamilyDateFilterChanged" />
+                                    <Label Text="From" VerticalTextAlignment="Center" />
+                                    <DatePicker x:Name="FamilyExpenseStartDatePicker"
+                                                Format="MMM d, yyyy"
+                                                DateSelected="OnFamilyDateSelected"
+                                                VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout Grid.Row="1"
+                                                       Grid.Column="1"
+                                                       Spacing="4"
+                                                       VerticalOptions="Center">
+                                    <CheckBox x:Name="FamilyExpenseUseEndDateCheckBox"
+                                              CheckedChanged="OnFamilyDateFilterChanged" />
+                                    <Label Text="To" VerticalTextAlignment="Center" />
+                                    <DatePicker x:Name="FamilyExpenseEndDatePicker"
+                                                Format="MMM d, yyyy"
+                                                DateSelected="OnFamilyDateSelected"
+                                                VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                            </Grid>
+                            <HorizontalStackLayout Spacing="8">
+                                <Button Text="Apply"
                                         Clicked="OnApplyFamilyExpenseFiltersClicked"
                                         VerticalOptions="Center" />
-                            </Grid>
+                                <Button Text="Clear filters"
+                                        Clicked="OnClearFamilyExpenseFiltersClicked"
+                                        Style="{StaticResource SecondaryButtonStyle}" />
+                            </HorizontalStackLayout>
                             <Label x:Name="FamilyExpensesCaptionLabel"
                                    Style="{StaticResource MutedLabelStyle}" />
                             <VerticalStackLayout Spacing="0"

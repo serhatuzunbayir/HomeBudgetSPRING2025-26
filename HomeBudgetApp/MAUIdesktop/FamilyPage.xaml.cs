@@ -26,6 +26,7 @@ public partial class FamilyPage : ContentPage
         InitializeComponent();
         _db = AppDatabase.Instance;
         BindingContext = this;
+        InitializeDateFilters();
     }
 
     protected override void OnAppearing()
@@ -346,15 +347,55 @@ public partial class FamilyPage : ContentPage
             ?? _familyCategoryFilterOptions[0];
     }
 
+    private void InitializeDateFilters()
+    {
+        FamilyExpenseStartDatePicker.Date = DateTime.Today.AddMonths(-1);
+        FamilyExpenseEndDatePicker.Date = DateTime.Today;
+        FamilyExpenseStartDatePicker.IsEnabled = false;
+        FamilyExpenseEndDatePicker.IsEnabled = false;
+    }
+
+    private void OnFamilyDateFilterChanged(object sender, CheckedChangedEventArgs e)
+    {
+        FamilyExpenseStartDatePicker.IsEnabled = FamilyExpenseUseStartDateCheckBox.IsChecked;
+        FamilyExpenseEndDatePicker.IsEnabled = FamilyExpenseUseEndDateCheckBox.IsChecked;
+        RefreshFamilyExpenseRows();
+    }
+
+    private void OnFamilyDateSelected(object sender, DateChangedEventArgs e)
+    {
+        RefreshFamilyExpenseRows();
+    }
+
     private async void OnApplyFamilyExpenseFiltersClicked(object sender, EventArgs e)
     {
-        if (!TryReadDate(FamilyExpenseStartDateEntry.Text, out _) ||
-            !TryReadDate(FamilyExpenseEndDateEntry.Text, out _))
+        if (!TryGetFamilyDateRange(out _, out _))
         {
-            await DisplayAlert("Invalid date", "Use yyyy-MM-dd for date filters, or leave the field blank.", "OK");
+            await DisplayAlert("Invalid date range", "Start date must be on or before end date.", "OK");
             return;
         }
 
+        RefreshFamilyExpenseRows();
+    }
+
+    private void OnClearFamilyExpenseFiltersClicked(object sender, EventArgs e)
+    {
+        if (_familyMemberFilterOptions.Count > 0)
+        {
+            FamilyMemberFilterPicker.SelectedItem = _familyMemberFilterOptions[0];
+        }
+
+        if (_familyCategoryFilterOptions.Count > 0)
+        {
+            FamilyCategoryFilterPicker.SelectedItem = _familyCategoryFilterOptions[0];
+        }
+
+        FamilyExpenseUseStartDateCheckBox.IsChecked = false;
+        FamilyExpenseUseEndDateCheckBox.IsChecked = false;
+        FamilyExpenseStartDatePicker.Date = DateTime.Today.AddMonths(-1);
+        FamilyExpenseEndDatePicker.Date = DateTime.Today;
+        FamilyExpenseStartDatePicker.IsEnabled = false;
+        FamilyExpenseEndDatePicker.IsEnabled = false;
         RefreshFamilyExpenseRows();
     }
 
@@ -368,8 +409,11 @@ public partial class FamilyPage : ContentPage
             return;
         }
 
-        TryReadDate(FamilyExpenseStartDateEntry.Text, out var startDate);
-        TryReadDate(FamilyExpenseEndDateEntry.Text, out var endDate);
+        if (!TryGetFamilyDateRange(out var startDate, out var endDate))
+        {
+            FamilyExpensesCaptionLabel.Text = "Start date must be on or before end date.";
+            return;
+        }
 
         var selectedMember = FamilyMemberFilterPicker.SelectedItem as FamilyMemberFilterOptionViewModel;
         var selectedCategory = FamilyCategoryFilterPicker.SelectedItem as FamilyCategoryFilterOptionViewModel;
@@ -419,27 +463,21 @@ public partial class FamilyPage : ContentPage
             : $"{summaries.Count} categor{(summaries.Count == 1 ? "y" : "ies")} across all family members.";
     }
 
-    private static bool TryReadDate(string? value, out DateTime? date)
+    private bool TryGetFamilyDateRange(out DateTime? startDate, out DateTime? endDate)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        startDate = FamilyExpenseUseStartDateCheckBox.IsChecked
+            ? FamilyExpenseStartDatePicker.Date
+            : null;
+        endDate = FamilyExpenseUseEndDateCheckBox.IsChecked
+            ? FamilyExpenseEndDatePicker.Date
+            : null;
+
+        if (startDate.HasValue && endDate.HasValue && startDate.Value.Date > endDate.Value.Date)
         {
-            date = null;
-            return true;
+            return false;
         }
 
-        if (DateTime.TryParseExact(
-                value.Trim(),
-                "yyyy-MM-dd",
-                System.Globalization.CultureInfo.InvariantCulture,
-                System.Globalization.DateTimeStyles.None,
-                out var parsedDate))
-        {
-            date = parsedDate;
-            return true;
-        }
-
-        date = null;
-        return false;
+        return true;
     }
 }
 
