@@ -96,7 +96,7 @@
 
                 <Grid x:Name="FamilyWorkspace"
                       Grid.Row="1"
-                      RowDefinitions="Auto,Auto"
+                      RowDefinitions="Auto,Auto,Auto,Auto"
                       RowSpacing="18">
                     <Grid ColumnDefinitions="2*,*"
                           ColumnSpacing="18">
@@ -157,6 +157,94 @@
                             </CollectionView.ItemTemplate>
                         </CollectionView>
                     </VerticalStackLayout>
+
+                    <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
+                        <VerticalStackLayout Spacing="12">
+                            <Label Text="Family Expenses" Style="{StaticResource SectionTitleStyle}" />
+                            <Grid ColumnDefinitions="*,*,*,Auto"
+                                  ColumnSpacing="10">
+                                <Picker x:Name="FamilyMemberFilterPicker"
+                                        Title="Member"
+                                        ItemDisplayBinding="{Binding Label}" />
+                                <Picker Grid.Column="1"
+                                        x:Name="FamilyCategoryFilterPicker"
+                                        Title="Category"
+                                        ItemDisplayBinding="{Binding Label}" />
+                                <Grid Grid.Column="2" ColumnDefinitions="*,*" ColumnSpacing="8">
+                                    <Entry x:Name="FamilyExpenseStartDateEntry" Placeholder="Start yyyy-MM-dd" />
+                                    <Entry Grid.Column="1"
+                                           x:Name="FamilyExpenseEndDateEntry"
+                                           Placeholder="End yyyy-MM-dd" />
+                                </Grid>
+                                <Button Grid.Column="3"
+                                        Text="Apply"
+                                        Clicked="OnApplyFamilyExpenseFiltersClicked"
+                                        VerticalOptions="Center" />
+                            </Grid>
+                            <Label x:Name="FamilyExpensesCaptionLabel"
+                                   Style="{StaticResource MutedLabelStyle}" />
+                            <VerticalStackLayout Spacing="0"
+                                                 BindableLayout.ItemsSource="{Binding FamilyExpenseRows}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="local:FamilyExpenseRowViewModel">
+                                        <Grid Padding="0,9"
+                                              ColumnDefinitions="*,Auto"
+                                              ColumnSpacing="10">
+                                            <VerticalStackLayout Spacing="1">
+                                                <Label Text="{Binding Description}" FontAttributes="Bold" />
+                                                <Label Text="{Binding DetailDisplay}" Style="{StaticResource MutedLabelStyle}" />
+                                            </VerticalStackLayout>
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding AmountDisplay}"
+                                                   TextColor="{StaticResource FinanceDanger}"
+                                                   FontAttributes="Bold"
+                                                   VerticalTextAlignment="Center" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border x:Name="FamilyBudgetOverviewPanel"
+                            Grid.Row="3"
+                            Style="{StaticResource CardBorderStyle}">
+                        <VerticalStackLayout Spacing="12">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Family Budget Overview" Style="{StaticResource SectionTitleStyle}" />
+                                    <Label x:Name="FamilyBudgetOverviewCaptionLabel"
+                                           Style="{StaticResource MutedLabelStyle}" />
+                                </VerticalStackLayout>
+                                <Label Grid.Column="1"
+                                       x:Name="FamilyBudgetOverviewTotalLabel"
+                                       Style="{StaticResource MetricValueStyle}"
+                                       TextColor="{StaticResource FinanceDanger}"
+                                       VerticalTextAlignment="Center" />
+                            </Grid>
+
+                            <VerticalStackLayout Spacing="0"
+                                                 BindableLayout.ItemsSource="{Binding FamilyBudgetSummaryRows}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="local:FamilyBudgetSummaryViewModel">
+                                        <Grid Padding="0,9"
+                                              ColumnDefinitions="*,Auto"
+                                              ColumnSpacing="10">
+                                            <VerticalStackLayout Spacing="1">
+                                                <Label Text="{Binding CategoryName}" FontAttributes="Bold" />
+                                                <Label Text="{Binding DetailDisplay}" Style="{StaticResource MutedLabelStyle}" />
+                                            </VerticalStackLayout>
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding TotalSpentDisplay}"
+                                                   TextColor="{StaticResource FinanceDanger}"
+                                                   FontAttributes="Bold"
+                                                   VerticalTextAlignment="Center" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
                 </Grid>
             </Grid>
         </ScrollView>

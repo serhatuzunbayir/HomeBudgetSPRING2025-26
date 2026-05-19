@@ -11,19 +11,25 @@ public partial class MainPage : ContentPage
     private readonly ObservableCollection<CategoryCardViewModel> _categories = new();
     private readonly ObservableCollection<CategoryExpenseSummaryViewModel> _categorySummaries = new();
     private readonly ObservableCollection<ExpenseRowViewModel> _recentExpenses = new();
+    private readonly ObservableCollection<GoalCardViewModel> _goals = new();
+    private readonly ObservableCollection<GoalEventViewModel> _goalEvents = new();
     private readonly List<ExpenseFilterOptionViewModel> _expenseFilterOptions = new();
     private readonly List<ExpenseSortOptionViewModel> _expenseSortOptions = new();
     private List<Category> _allCategories = new();
     private List<Expense> _allExpenses = new();
+
+    public ObservableCollection<CategoryCardViewModel> CategoryCards => _categories;
+    public ObservableCollection<CategoryExpenseSummaryViewModel> CategorySummaryCards => _categorySummaries;
+    public ObservableCollection<ExpenseRowViewModel> RecentExpenseRows => _recentExpenses;
+    public ObservableCollection<GoalCardViewModel> GoalCards => _goals;
+    public ObservableCollection<GoalEventViewModel> GoalEventRows => _goalEvents;
 
     public MainPage()
     {
         InitializeComponent();
 
         _db = AppDatabase.Instance;
-        CategoryCollection.ItemsSource = _categories;
-        ExpenseSummaryCollection.ItemsSource = _categorySummaries;
-        RecentExpensesCollection.ItemsSource = _recentExpenses;
+        BindingContext = this;
 
         _expenseSortOptions.AddRange(new[]
         {
@@ -64,12 +70,16 @@ public partial class MainPage : ContentPage
         WelcomeLabel.Text = $"Welcome, {user?.Name}";
         _categories.Clear();
         _categorySummaries.Clear();
+        _goals.Clear();
+        _goalEvents.Clear();
+
+        _db.EvaluateGoalsForUser(user!.UserId);
 
         var selectedCategoryId = (ExpenseCategoryFilterPicker.SelectedItem as ExpenseFilterOptionViewModel)?.CategoryId;
         var selectedSortOption = (ExpenseSortPicker.SelectedItem as ExpenseSortOptionViewModel)?.SortOption
                                  ?? ExpenseSortOption.NewestFirst;
 
-        _allCategories = _db.GetAllCategoriesByUser(user!.UserId)
+        _allCategories = _db.GetAllCategoriesByUser(user.UserId)
             .OrderBy(category => category.Name)
             .ToList();
         _allExpenses = _db.GetAllExpensesByUser(user.UserId);
@@ -103,6 +113,22 @@ public partial class MainPage : ContentPage
         BudgetAlertsLabel.TextColor = activeAlerts.Count == 0 ? Colors.ForestGreen : Colors.DarkOrange;
         ExpenseSummaryCaptionLabel.Text = BuildExpenseSummaryCaption(_categorySummaries);
         FamilyOverviewLabel.Text = BuildFamilyOverviewText(user.UserId);
+        NoCategoriesLabel.IsVisible = _categories.Count == 0;
+
+        foreach (var goal in _db.GetGoalsByUser(user.UserId).Select(goal => new GoalCardViewModel(goal)))
+        {
+            _goals.Add(goal);
+        }
+
+        foreach (var goalEvent in _db.GetRecentGoalEvents(user.UserId).Select(goalEvent => new GoalEventViewModel(goalEvent)))
+        {
+            _goalEvents.Add(goalEvent);
+        }
+
+        GoalsCaptionLabel.Text = BuildGoalsCaption(_goals);
+        GoalEventsCaptionLabel.Text = _goalEvents.Count == 0
+            ? "No goal events yet."
+            : "Recent goal milestones.";
 
         RefreshExpenseFilterOptions(selectedCategoryId);
         RestoreExpenseSortSelection(selectedSortOption);
@@ -267,6 +293,68 @@ public partial class MainPage : ContentPage
         LoadDashboard();
     }
 
+    private async void OnAddGoalClicked(object sender, EventArgs e)
+    {
+        var user = AppSession.CurrentUser;
+        if (user is null)
+        {
+            return;
+        }
+
+        var name = await DisplayPromptAsync("New spending goal", "Goal name", "Next", "Cancel", "May savings cap");
+        name = (name ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        var targetText = await DisplayPromptAsync("New spending goal", "Maximum spending amount", "Next", "Cancel", "1000", keyboard: Keyboard.Numeric);
+        if (!TryReadMoney(targetText, out var targetAmount) || targetAmount <= 0)
+        {
+            await DisplayAlert("Invalid amount", "Please enter a spending cap greater than zero.", "OK");
+            return;
+        }
+
+        var deadlineText = await DisplayPromptAsync(
+            "New spending goal",
+            "Deadline date (yyyy-MM-dd)",
+            "Create",
+            "Cancel",
+            DateTime.Now.AddMonths(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+
+        if (!DateTime.TryParseExact(
+                deadlineText,
+                "yyyy-MM-dd",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out var deadline))
+        {
+            await DisplayAlert("Invalid deadline", "Please enter a date like 2026-06-30.", "OK");
+            return;
+        }
+
+        _db.AddGoal(user.UserId, name, targetAmount, deadline);
+        LoadDashboard();
+    }
+
+    private async void OnDeleteGoalClicked(object sender, EventArgs e)
+    {
+        var user = AppSession.CurrentUser;
+        if (user is null || (sender as Button)?.CommandParameter is not GoalCardViewModel goal)
+        {
+            return;
+        }
+
+        var confirmed = await DisplayAlert("Delete goal", $"Delete {goal.Name}?", "Delete", "Cancel");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        _db.DeleteGoal(goal.GoalId, user.UserId);
+        LoadDashboard();
+    }
+
     private async void OnProfileClicked(object sender, EventArgs e)
     {
         await Shell.Current.GoToAsync(nameof(ProfilePage));
@@ -379,7 +467,7 @@ public partial class MainPage : ContentPage
             _categorySummaries.Add(summary);
         }
 
-        var displayedExpenses = snapshot.FilteredExpenses.Take(6).ToList();
+        var displayedExpenses = snapshot.FilteredExpenses.ToList();
 
         _recentExpenses.Clear();
         foreach (var expense in displayedExpenses.Select(expense => new ExpenseRowViewModel(expense)))
@@ -401,7 +489,7 @@ public partial class MainPage : ContentPage
         int matchingExpenseCount,
         int displayedExpenseCount)
     {
-        return $"{displayedExpenseCount} of {matchingExpenseCount} expense{(matchingExpenseCount == 1 ? "" : "s")} · {scopeLabel} · sorted by {sortLabel.ToLowerInvariant()}";
+        return $"{displayedExpenseCount} expense{(displayedExpenseCount == 1 ? "" : "s")} · {scopeLabel} · sorted by {sortLabel.ToLowerInvariant()}";
     }
 
     private static string BuildExpenseSummaryCaption(IReadOnlyCollection<CategoryExpenseSummaryViewModel> summaries)
@@ -422,6 +510,17 @@ public partial class MainPage : ContentPage
             .First();
 
         return $"Top spending category: {topCategory.CategoryName} at {topCategory.TotalSpentDisplay}.";
+    }
+
+    private static string BuildGoalsCaption(IReadOnlyCollection<GoalCardViewModel> goals)
+    {
+        if (goals.Count == 0)
+        {
+            return "Create a spending cap with a deadline to track progress automatically.";
+        }
+
+        var activeGoals = goals.Count(goal => goal.Status == GoalStatus.Active);
+        return $"{activeGoals} active of {goals.Count} goal{(goals.Count == 1 ? "" : "s")}.";
     }
 
     private void OnExpenseFilterChanged(object? sender, EventArgs e)
@@ -488,6 +587,7 @@ public sealed class CategoryCardViewModel
         : WarningThreshold.HasValue && Remaining < WarningThreshold.Value
             ? Color.FromArgb("#B45309")
             : Color.FromArgb("#15803D");
+    public bool HasNoExpenses => Expenses.Count == 0;
     public ObservableCollection<ExpenseRowViewModel> Expenses { get; }
 }
 
@@ -527,6 +627,53 @@ public sealed class ExpenseRowViewModel
     public double Amount { get; }
     public string AmountDisplay => Amount.ToString("C");
     public string Date { get; }
+}
+
+public sealed class GoalCardViewModel
+{
+    public GoalCardViewModel(Goal goal)
+    {
+        GoalId = goal.GoalId;
+        Name = goal.Name;
+        TargetAmount = goal.TargetAmount;
+        CurrentSpent = goal.CurrentSpent;
+        RemainingAmount = goal.RemainingAmount;
+        ProgressRatio = goal.ProgressRatio;
+        CreatedAt = goal.CreatedAt;
+        Deadline = goal.Deadline;
+        Status = goal.Status;
+    }
+
+    public int GoalId { get; }
+    public string Name { get; }
+    public double TargetAmount { get; }
+    public double CurrentSpent { get; }
+    public double RemainingAmount { get; }
+    public double ProgressRatio { get; }
+    public string CreatedAt { get; }
+    public string Deadline { get; }
+    public GoalStatus Status { get; }
+    public string DeadlineDisplay => $"Deadline: {Deadline}";
+    public string ProgressDisplay => $"{CurrentSpent:C} spent of {TargetAmount:C} cap · {RemainingAmount:C} left";
+    public string StatusDisplay => Status.ToString();
+    public Color StatusColor => Status switch
+    {
+        GoalStatus.Reached => Color.FromArgb("#15803D"),
+        GoalStatus.Missed => Color.FromArgb("#B91C1C"),
+        _ => Color.FromArgb("#2563EB")
+    };
+}
+
+public sealed class GoalEventViewModel
+{
+    public GoalEventViewModel(GoalEvent goalEvent)
+    {
+        Message = goalEvent.Message;
+        CreatedAt = goalEvent.CreatedAt;
+    }
+
+    public string Message { get; }
+    public string CreatedAt { get; }
 }
 
 public sealed class ExpenseFilterOptionViewModel

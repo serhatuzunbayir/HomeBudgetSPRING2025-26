@@ -15,8 +15,7 @@ public static class AppDatabase
                 return _database;
             }
 
-            var databasePath = Path.Combine(FileSystem.AppDataDirectory, "AppDb.db");
-            Directory.CreateDirectory(Path.GetDirectoryName(databasePath)!);
+            var databasePath = SharedDatabasePath.GetPath();
             _database = new DatabaseRepository(databasePath);
          
             return _database;

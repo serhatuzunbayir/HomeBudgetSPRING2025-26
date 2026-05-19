@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web", "Web\Web.csproj", "{1
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MAUIdesktop", "MAUIdesktop\MAUIdesktop.csproj", "{4C5B6C8E-3D0E-4759-A895-B89C12D5766A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharedData.Tests", "SharedData.Tests\SharedData.Tests.csproj", "{A8D0F377-3918-4D9C-8D4C-2E9F35F1A108}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,6 +30,10 @@ Global
 		{4C5B6C8E-3D0E-4759-A895-B89C12D5766A}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
 		{4C5B6C8E-3D0E-4759-A895-B89C12D5766A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4C5B6C8E-3D0E-4759-A895-B89C12D5766A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A8D0F377-3918-4D9C-8D4C-2E9F35F1A108}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8D0F377-3918-4D9C-8D4C-2E9F35F1A108}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8D0F377-3918-4D9C-8D4C-2E9F35F1A108}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8D0F377-3918-4D9C-8D4C-2E9F35F1A108}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

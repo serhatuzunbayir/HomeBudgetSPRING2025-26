@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:MAUIdesktop"
              x:Class="MAUIdesktop.MainPage"
+             x:Name="RootPage"
              Title="My Budget">
 
     <Grid ColumnDefinitions="220,*">
@@ -40,13 +41,13 @@
 
         <ScrollView Grid.Column="1">
             <Grid Padding="28"
-                  RowDefinitions="Auto,Auto,Auto,Auto"
+                  RowDefinitions="Auto,Auto,Auto"
                   RowSpacing="20">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                     <VerticalStackLayout Spacing="4">
                         <Label x:Name="WelcomeLabel"
                                Style="{StaticResource PageTitleStyle}" />
-                        <Label Text="Track spending, category limits, alerts, and family budget activity."
+                        <Label Text="Track spending, category limits, alerts, goals, and family budget activity."
                                Style="{StaticResource MutedLabelStyle}" />
                     </VerticalStackLayout>
 
@@ -104,15 +105,16 @@
                                    VerticalTextAlignment="Center" />
                         </Grid>
 
-                        <CollectionView x:Name="CategoryCollection"
-                                        EmptyView="No categories yet. Add one to start tracking your expenses.">
-                            <CollectionView.ItemsLayout>
-                                <GridItemsLayout Orientation="Vertical" Span="2" HorizontalItemSpacing="14" VerticalItemSpacing="14" />
-                            </CollectionView.ItemsLayout>
-                            <CollectionView.ItemTemplate>
+                        <Label x:Name="NoCategoriesLabel"
+                               Text="No categories yet. Add one to start tracking your expenses."
+                               Style="{StaticResource MutedLabelStyle}" />
+
+                        <VerticalStackLayout Spacing="14"
+                                             BindableLayout.ItemsSource="{Binding CategoryCards}">
+                            <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="local:CategoryCardViewModel">
                                     <Border Style="{StaticResource CardBorderStyle}">
-                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
+                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
                                             <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
                                                 <VerticalStackLayout Spacing="2">
                                                     <Label Text="{Binding Name}" FontSize="18" FontAttributes="Bold" />
@@ -159,10 +161,15 @@
                                                 </VerticalStackLayout>
                                             </Grid>
 
-                                            <CollectionView Grid.Row="3"
-                                                            ItemsSource="{Binding Expenses}"
-                                                            EmptyView="No expenses added yet.">
-                                                <CollectionView.ItemTemplate>
+                                            <Label Grid.Row="3"
+                                                   Text="No expenses added yet."
+                                                   Style="{StaticResource MutedLabelStyle}"
+                                                   IsVisible="{Binding HasNoExpenses}" />
+
+                                            <VerticalStackLayout Grid.Row="4"
+                                                                 Spacing="0"
+                                                                 BindableLayout.ItemsSource="{Binding Expenses}">
+                                                <BindableLayout.ItemTemplate>
                                                     <DataTemplate x:DataType="local:ExpenseRowViewModel">
                                                         <Grid Padding="0,8"
                                                               ColumnDefinitions="*,Auto,Auto"
@@ -183,13 +190,13 @@
                                                                     Style="{StaticResource SecondaryButtonStyle}" />
                                                         </Grid>
                                                     </DataTemplate>
-                                                </CollectionView.ItemTemplate>
-                                            </CollectionView>
+                                                </BindableLayout.ItemTemplate>
+                                            </VerticalStackLayout>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
 
                     <VerticalStackLayout Grid.Column="1" Spacing="14">
@@ -198,7 +205,52 @@
                                 <Label Text="Analytics" Style="{StaticResource SectionTitleStyle}" />
                                 <Label Text="Monthly Average" Style="{StaticResource MutedLabelStyle}" />
                                 <Label x:Name="MonthlyAverageLabel" Style="{StaticResource MetricValueStyle}" />
-                                <Label Text="Real-time LINQ summaries are calculated from your stored expenses." Style="{StaticResource MutedLabelStyle}" />
+                                <Label Text="Real-time summaries are calculated from your stored expenses." Style="{StaticResource MutedLabelStyle}" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <VerticalStackLayout Spacing="10">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                    <Label Text="Spending Goals" Style="{StaticResource SectionTitleStyle}" />
+                                    <Button Grid.Column="1"
+                                            Text="Add goal"
+                                            Clicked="OnAddGoalClicked"
+                                            VerticalOptions="Center" />
+                                </Grid>
+                                <Label x:Name="GoalsCaptionLabel" Style="{StaticResource MutedLabelStyle}" />
+                                <VerticalStackLayout Spacing="8"
+                                                     BindableLayout.ItemsSource="{Binding GoalCards}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="local:GoalCardViewModel">
+                                            <Border Style="{StaticResource SoftPanelStyle}">
+                                                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+                                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                                        <VerticalStackLayout Spacing="2">
+                                                            <Label Text="{Binding Name}" FontAttributes="Bold" />
+                                                            <Label Text="{Binding DeadlineDisplay}" Style="{StaticResource MutedLabelStyle}" />
+                                                        </VerticalStackLayout>
+                                                        <Button Grid.Column="1"
+                                                                Text="Delete"
+                                                                Clicked="OnDeleteGoalClicked"
+                                                                CommandParameter="{Binding .}"
+                                                                Style="{StaticResource SecondaryButtonStyle}" />
+                                                    </Grid>
+                                                    <ProgressBar Grid.Row="1"
+                                                                 Progress="{Binding ProgressRatio}"
+                                                                 Style="{StaticResource BudgetProgressStyle}" />
+                                                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                                        <Label Text="{Binding ProgressDisplay}" Style="{StaticResource MutedLabelStyle}" />
+                                                        <Label Grid.Column="1"
+                                                               Text="{Binding StatusDisplay}"
+                                                               TextColor="{Binding StatusColor}"
+                                                               FontAttributes="Bold" />
+                                                    </Grid>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
                             </VerticalStackLayout>
                         </Border>
 
@@ -207,9 +259,9 @@
                                 <Label Text="Expense Summary by Category" Style="{StaticResource SectionTitleStyle}" />
                                 <Label x:Name="ExpenseSummaryCaptionLabel"
                                        Style="{StaticResource MutedLabelStyle}" />
-                                <CollectionView x:Name="ExpenseSummaryCollection"
-                                                EmptyView="No categories yet. Add a category to see grouped spending insights.">
-                                    <CollectionView.ItemTemplate>
+                                <VerticalStackLayout Spacing="0"
+                                                     BindableLayout.ItemsSource="{Binding CategorySummaryCards}">
+                                    <BindableLayout.ItemTemplate>
                                         <DataTemplate x:DataType="local:CategoryExpenseSummaryViewModel">
                                             <Grid Padding="0,8"
                                                   ColumnDefinitions="*,Auto"
@@ -230,8 +282,8 @@
                                                 </VerticalStackLayout>
                                             </Grid>
                                         </DataTemplate>
-                                    </CollectionView.ItemTemplate>
-                                </CollectionView>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
                             </VerticalStackLayout>
                         </Border>
 
@@ -260,9 +312,9 @@
                                 </Grid>
                                 <Label x:Name="ExpenseExplorerCaptionLabel"
                                        Style="{StaticResource MutedLabelStyle}" />
-                                <CollectionView x:Name="RecentExpensesCollection"
-                                                EmptyView="No matching expenses yet.">
-                                    <CollectionView.ItemTemplate>
+                                <VerticalStackLayout Spacing="0"
+                                                     BindableLayout.ItemsSource="{Binding RecentExpenseRows}">
+                                    <BindableLayout.ItemTemplate>
                                         <DataTemplate x:DataType="local:ExpenseRowViewModel">
                                             <Grid Padding="0,8" ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                                 <VerticalStackLayout Spacing="1">
@@ -276,8 +328,26 @@
                                                        VerticalTextAlignment="Center" />
                                             </Grid>
                                         </DataTemplate>
-                                    </CollectionView.ItemTemplate>
-                                </CollectionView>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <VerticalStackLayout Spacing="10">
+                                <Label Text="Goal Events" Style="{StaticResource SectionTitleStyle}" />
+                                <Label x:Name="GoalEventsCaptionLabel" Style="{StaticResource MutedLabelStyle}" />
+                                <VerticalStackLayout Spacing="6"
+                                                     BindableLayout.ItemsSource="{Binding GoalEventRows}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="local:GoalEventViewModel">
+                                            <VerticalStackLayout Spacing="1">
+                                                <Label Text="{Binding Message}" FontAttributes="Bold" />
+                                                <Label Text="{Binding CreatedAt}" Style="{StaticResource MutedLabelStyle}" />
+                                            </VerticalStackLayout>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
                             </VerticalStackLayout>
                         </Border>
 

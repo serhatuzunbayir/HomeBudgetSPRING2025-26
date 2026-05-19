@@ -1,4 +1,5 @@
-﻿using Microsoft.Data.Sqlite;
+﻿using System.Globalization;
+using Microsoft.Data.Sqlite;
 
 namespace SharedData;
 
@@ -113,6 +114,37 @@ public class DatabaseRepository
                 ON DELETE CASCADE
         );
 
+        CREATE TABLE IF NOT EXISTS Goals (
+            goalId INTEGER PRIMARY KEY AUTOINCREMENT,
+            userId INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            targetAmount REAL NOT NULL,
+            createdAt TEXT NOT NULL,
+            deadline TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'Active',
+
+            FOREIGN KEY (userId)
+            REFERENCES Users(userId)
+            ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS GoalEvents (
+            goalEventId INTEGER PRIMARY KEY AUTOINCREMENT,
+            goalId INTEGER NOT NULL,
+            userId INTEGER NOT NULL,
+            status TEXT NOT NULL,
+            message TEXT NOT NULL,
+            createdAt TEXT NOT NULL,
+
+            FOREIGN KEY (goalId)
+            REFERENCES Goals(goalId)
+            ON DELETE CASCADE,
+
+            FOREIGN KEY (userId)
+            REFERENCES Users(userId)
+            ON DELETE CASCADE
+        );
+
         CREATE TABLE IF NOT EXISTS FamilyCategories (
             familyCategoryId INTEGER PRIMARY KEY AUTOINCREMENT,
             familyId INTEGER NOT NULL,
@@ -149,9 +181,27 @@ public class DatabaseRepository
             ON DELETE CASCADE,
 
             FOREIGN KEY (familyId, familyCategoryId)
-            REFERENCES FamilyCategories(familyId, familyCategoryId)
-            ON DELETE CASCADE
+                REFERENCES FamilyCategories(familyId, familyCategoryId)
+                ON DELETE CASCADE
         );
+
+        CREATE INDEX IF NOT EXISTS IX_Expenses_User_Category_Date
+            ON Expenses(userId, categoryId, date);
+
+        CREATE INDEX IF NOT EXISTS IX_Expenses_User_Date
+            ON Expenses(userId, date);
+
+        CREATE INDEX IF NOT EXISTS IX_FamilyMembers_Family_User
+            ON FamilyMembers(familyId, userId);
+
+        CREATE INDEX IF NOT EXISTS IX_Categories_User_Name
+            ON Categories(userId, name);
+
+        CREATE INDEX IF NOT EXISTS IX_Goals_User_Status_Deadline
+            ON Goals(userId, status, deadline);
+
+        CREATE INDEX IF NOT EXISTS IX_GoalEvents_User_CreatedAt
+            ON GoalEvents(userId, createdAt);
 
         ";
 
@@ -176,6 +226,114 @@ public class DatabaseRepository
         using var alterCommand = connection.CreateCommand();
         alterCommand.CommandText = "ALTER TABLE Categories ADD COLUMN warningThreshold REAL NULL;";
         alterCommand.ExecuteNonQuery();
+    }
+
+    private static string ToDbDate(DateTime value)
+    {
+        return SpendingGoalService.FormatDate(value.Date);
+    }
+
+    private static DateTime ParseDbDate(string value)
+    {
+        return SpendingGoalService.ParseDate(value);
+    }
+
+    private static GoalStatus ParseGoalStatus(string value)
+    {
+        return Enum.TryParse<GoalStatus>(value, ignoreCase: true, out var status)
+            ? status
+            : GoalStatus.Active;
+    }
+
+    private static Goal ReadGoal(SqliteDataReader reader)
+    {
+        return new Goal
+        {
+            GoalId = reader.GetInt32(0),
+            UserId = reader.GetInt32(1),
+            Name = reader.GetString(2),
+            TargetAmount = reader.GetDouble(3),
+            CreatedAt = reader.GetString(4),
+            Deadline = reader.GetString(5),
+            Status = ParseGoalStatus(reader.GetString(6))
+        };
+    }
+
+    private static GoalEvent ReadGoalEvent(SqliteDataReader reader)
+    {
+        return new GoalEvent
+        {
+            GoalEventId = reader.GetInt32(0),
+            GoalId = reader.GetInt32(1),
+            UserId = reader.GetInt32(2),
+            GoalName = reader.GetString(3),
+            Status = ParseGoalStatus(reader.GetString(4)),
+            Message = reader.GetString(5),
+            CreatedAt = reader.GetString(6)
+        };
+    }
+
+    private static double GetGoalSpending(SqliteConnection connection, SqliteTransaction? transaction, int userId, string createdAt, string deadline)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = @"
+        SELECT COALESCE(SUM(amount), 0)
+        FROM Expenses
+        WHERE userId = $userId
+          AND date >= $createdAt
+          AND date <= $deadline;
+        ";
+
+        command.Parameters.AddWithValue("$userId", userId);
+        command.Parameters.AddWithValue("$createdAt", createdAt);
+        command.Parameters.AddWithValue("$deadline", deadline);
+
+        return Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+    }
+
+    private static Goal WithGoalSpending(SqliteConnection connection, Goal goal)
+    {
+        goal.CurrentSpent = GetGoalSpending(connection, null, goal.UserId, goal.CreatedAt, goal.Deadline);
+        return goal;
+    }
+
+    private static Goal WithGoalSpending(SqliteConnection connection, SqliteTransaction transaction, Goal goal)
+    {
+        goal.CurrentSpent = GetGoalSpending(connection, transaction, goal.UserId, goal.CreatedAt, goal.Deadline);
+        return goal;
+    }
+
+    private static GoalEvent InsertGoalEvent(SqliteConnection connection, SqliteTransaction transaction, Goal goal, GoalStatus status, string createdAt)
+    {
+        goal.Status = status;
+        var message = SpendingGoalService.BuildEventMessage(goal, status);
+
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = @"
+        INSERT INTO GoalEvents (goalId, userId, status, message, createdAt)
+        VALUES ($goalId, $userId, $status, $message, $createdAt);
+
+        SELECT last_insert_rowid();
+        ";
+
+        command.Parameters.AddWithValue("$goalId", goal.GoalId);
+        command.Parameters.AddWithValue("$userId", goal.UserId);
+        command.Parameters.AddWithValue("$status", status.ToString());
+        command.Parameters.AddWithValue("$message", message);
+        command.Parameters.AddWithValue("$createdAt", createdAt);
+
+        return new GoalEvent
+        {
+            GoalEventId = Convert.ToInt32(command.ExecuteScalar()),
+            GoalId = goal.GoalId,
+            UserId = goal.UserId,
+            GoalName = goal.Name,
+            Status = status,
+            Message = message,
+            CreatedAt = createdAt
+        };
     }
 
     private bool FamilyMemberExists(SqliteConnection connection, int familyId, int userId)
@@ -456,6 +614,7 @@ public class DatabaseRepository
         ChangeCategoryBudget(connection, transaction, userId, categoryId, -amount);
 
         transaction.Commit();
+        EvaluateGoalsForUser(userId);
 
         return expenseId;
     }
@@ -560,6 +719,7 @@ public class DatabaseRepository
         }
 
         transaction.Commit();
+        EvaluateGoalsForUser(userId);
     }
 
     public void DeleteExpense(int expenseId, int userId)
@@ -588,6 +748,7 @@ public class DatabaseRepository
         }
 
         transaction.Commit();
+        EvaluateGoalsForUser(userId);
     }
 
     // ---------------- CATEGORIES ----------------
@@ -713,6 +874,207 @@ public class DatabaseRepository
         command.Parameters.AddWithValue("$userId", userId);
 
         command.ExecuteNonQuery();
+    }
+
+    // ---------------- GOALS ----------------
+
+    public int AddGoal(int userId, string name, double targetAmount, DateTime deadline, DateTime? createdAt = null)
+    {
+        using var connection = GetConnection();
+        using var command = connection.CreateCommand();
+
+        command.CommandText = @"
+        INSERT INTO Goals (userId, name, targetAmount, createdAt, deadline, status)
+        VALUES ($userId, $name, $targetAmount, $createdAt, $deadline, 'Active');
+
+        SELECT last_insert_rowid();
+        ";
+
+        command.Parameters.AddWithValue("$userId", userId);
+        command.Parameters.AddWithValue("$name", name);
+        command.Parameters.AddWithValue("$targetAmount", targetAmount);
+        command.Parameters.AddWithValue("$createdAt", ToDbDate(createdAt ?? DateTime.Now));
+        command.Parameters.AddWithValue("$deadline", ToDbDate(deadline));
+
+        var goalId = Convert.ToInt32(command.ExecuteScalar());
+        EvaluateGoalsForUser(userId);
+
+        return goalId;
+    }
+
+    public void UpdateGoal(int goalId, int userId, string name, double targetAmount, DateTime deadline)
+    {
+        using var connection = GetConnection();
+        using var command = connection.CreateCommand();
+
+        command.CommandText = @"
+        UPDATE Goals
+        SET name = $name,
+            targetAmount = $targetAmount,
+            deadline = $deadline,
+            status = 'Active'
+        WHERE goalId = $goalId
+          AND userId = $userId;
+        ";
+
+        command.Parameters.AddWithValue("$goalId", goalId);
+        command.Parameters.AddWithValue("$userId", userId);
+        command.Parameters.AddWithValue("$name", name);
+        command.Parameters.AddWithValue("$targetAmount", targetAmount);
+        command.Parameters.AddWithValue("$deadline", ToDbDate(deadline));
+        command.ExecuteNonQuery();
+
+        EvaluateGoalsForUser(userId);
+    }
+
+    public void DeleteGoal(int goalId, int userId)
+    {
+        using var connection = GetConnection();
+        using var command = connection.CreateCommand();
+
+        command.CommandText = @"
+        DELETE FROM Goals
+        WHERE goalId = $goalId
+          AND userId = $userId;
+        ";
+
+        command.Parameters.AddWithValue("$goalId", goalId);
+        command.Parameters.AddWithValue("$userId", userId);
+        command.ExecuteNonQuery();
+    }
+
+    public List<Goal> GetGoalsByUser(int userId)
+    {
+        var goals = new List<Goal>();
+
+        using var connection = GetConnection();
+        using var command = connection.CreateCommand();
+
+        command.CommandText = @"
+        SELECT goalId, userId, name, targetAmount, createdAt, deadline, status
+        FROM Goals
+        WHERE userId = $userId
+        ORDER BY
+            CASE status
+                WHEN 'Active' THEN 0
+                WHEN 'Missed' THEN 1
+                WHEN 'Reached' THEN 2
+                ELSE 3
+            END,
+            deadline ASC,
+            name ASC;
+        ";
+
+        command.Parameters.AddWithValue("$userId", userId);
+
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            goals.Add(ReadGoal(reader));
+        }
+
+        return goals.Select(goal => WithGoalSpending(connection, goal)).ToList();
+    }
+
+    public List<GoalEvent> EvaluateGoalsForUser(int userId, DateTime? asOf = null)
+    {
+        var eventTime = ToDbDate(asOf ?? DateTime.Now);
+        var raisedEvents = new List<GoalEvent>();
+
+        using var connection = GetConnection();
+        using var transaction = connection.BeginTransaction();
+
+        var activeGoals = new List<Goal>();
+        using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = @"
+            SELECT goalId, userId, name, targetAmount, createdAt, deadline, status
+            FROM Goals
+            WHERE userId = $userId
+              AND status = 'Active'
+            ORDER BY deadline ASC;
+            ";
+
+            command.Parameters.AddWithValue("$userId", userId);
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                activeGoals.Add(ReadGoal(reader));
+            }
+        }
+
+        foreach (var goal in activeGoals)
+        {
+            WithGoalSpending(connection, transaction, goal);
+            var nextStatus = SpendingGoalService.EvaluateBudgetCapGoal(goal, goal.CurrentSpent, asOf ?? DateTime.Now);
+            if (nextStatus == GoalStatus.Active)
+            {
+                continue;
+            }
+
+            using (var updateCommand = connection.CreateCommand())
+            {
+                updateCommand.Transaction = transaction;
+                updateCommand.CommandText = @"
+                UPDATE Goals
+                SET status = $status
+                WHERE goalId = $goalId
+                  AND userId = $userId
+                  AND status = 'Active';
+                ";
+
+                updateCommand.Parameters.AddWithValue("$status", nextStatus.ToString());
+                updateCommand.Parameters.AddWithValue("$goalId", goal.GoalId);
+                updateCommand.Parameters.AddWithValue("$userId", userId);
+
+                if (updateCommand.ExecuteNonQuery() == 0)
+                {
+                    continue;
+                }
+            }
+
+            raisedEvents.Add(InsertGoalEvent(connection, transaction, goal, nextStatus, eventTime));
+        }
+
+        transaction.Commit();
+
+        return raisedEvents;
+    }
+
+    public List<GoalEvent> GetRecentGoalEvents(int userId, int limit = 5)
+    {
+        var events = new List<GoalEvent>();
+
+        using var connection = GetConnection();
+        using var command = connection.CreateCommand();
+
+        command.CommandText = @"
+        SELECT GoalEvents.goalEventId,
+               GoalEvents.goalId,
+               GoalEvents.userId,
+               Goals.name,
+               GoalEvents.status,
+               GoalEvents.message,
+               GoalEvents.createdAt
+        FROM GoalEvents
+        INNER JOIN Goals ON Goals.goalId = GoalEvents.goalId
+        WHERE GoalEvents.userId = $userId
+        ORDER BY GoalEvents.createdAt DESC, GoalEvents.goalEventId DESC
+        LIMIT $limit;
+        ";
+
+        command.Parameters.AddWithValue("$userId", userId);
+        command.Parameters.AddWithValue("$limit", limit);
+
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            events.Add(ReadGoalEvent(reader));
+        }
+
+        return events;
     }
 
     // ---------------- FAMILIES ----------------
@@ -891,6 +1253,180 @@ public class DatabaseRepository
         }
 
         return users;
+    }
+
+    public string? GetFamilyMemberRole(int familyId, int userId)
+    {
+        using var connection = GetConnection();
+        using var command = connection.CreateCommand();
+
+        command.CommandText = @"
+        SELECT role
+        FROM FamilyMembers
+        WHERE familyId = $familyId
+          AND userId = $userId;
+        ";
+
+        command.Parameters.AddWithValue("$familyId", familyId);
+        command.Parameters.AddWithValue("$userId", userId);
+
+        return command.ExecuteScalar()?.ToString();
+    }
+
+    public bool IsFamilyAdmin(int familyId, int userId)
+    {
+        return IsAdminRole(GetFamilyMemberRole(familyId, userId));
+    }
+
+    public List<string> GetFamilyCategoryNames(int familyId)
+    {
+        var categoryNames = new List<string>();
+
+        using var connection = GetConnection();
+        using var command = connection.CreateCommand();
+
+        command.CommandText = @"
+        SELECT MIN(Categories.name) AS categoryName
+        FROM Expenses
+        INNER JOIN FamilyMembers ON FamilyMembers.userId = Expenses.userId
+        INNER JOIN Categories ON Categories.userId = Expenses.userId
+            AND Categories.categoryId = Expenses.categoryId
+        WHERE FamilyMembers.familyId = $familyId
+        GROUP BY LOWER(Categories.name)
+        ORDER BY categoryName ASC;
+        ";
+
+        command.Parameters.AddWithValue("$familyId", familyId);
+
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            categoryNames.Add(reader.GetString(0));
+        }
+
+        return categoryNames;
+    }
+
+    public List<FamilyExpenseRow> GetFamilyExpenseRows(int familyId, FamilyExpenseQuery? query = null)
+    {
+        query ??= new FamilyExpenseQuery();
+        var expenses = new List<FamilyExpenseRow>();
+        var conditions = new List<string> { "FamilyMembers.familyId = $familyId" };
+
+        using var connection = GetConnection();
+        using var command = connection.CreateCommand();
+
+        command.Parameters.AddWithValue("$familyId", familyId);
+
+        if (query.MemberUserId.HasValue)
+        {
+            conditions.Add("Expenses.userId = $memberUserId");
+            command.Parameters.AddWithValue("$memberUserId", query.MemberUserId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.CategoryName))
+        {
+            conditions.Add("LOWER(Categories.name) = LOWER($categoryName)");
+            command.Parameters.AddWithValue("$categoryName", query.CategoryName.Trim());
+        }
+
+        if (query.StartDate.HasValue)
+        {
+            conditions.Add("Expenses.date >= $startDate");
+            command.Parameters.AddWithValue("$startDate", ToDbDate(query.StartDate.Value));
+        }
+
+        if (query.EndDate.HasValue)
+        {
+            conditions.Add("Expenses.date <= $endDate");
+            command.Parameters.AddWithValue("$endDate", ToDbDate(query.EndDate.Value));
+        }
+
+        command.CommandText = $@"
+        SELECT Expenses.expenseId,
+               FamilyMembers.familyId,
+               Expenses.userId,
+               Users.name,
+               Users.email,
+               Expenses.categoryId,
+               Categories.name,
+               Expenses.description,
+               Expenses.amount,
+               Expenses.date
+        FROM Expenses
+        INNER JOIN FamilyMembers ON FamilyMembers.userId = Expenses.userId
+        INNER JOIN Users ON Users.userId = Expenses.userId
+        INNER JOIN Categories ON Categories.userId = Expenses.userId
+            AND Categories.categoryId = Expenses.categoryId
+        WHERE {string.Join(" AND ", conditions)}
+        ORDER BY Expenses.date DESC, Expenses.expenseId DESC;
+        ";
+
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            expenses.Add(new FamilyExpenseRow
+            {
+                ExpenseId = reader.GetInt32(0),
+                FamilyId = reader.GetInt32(1),
+                UserId = reader.GetInt32(2),
+                MemberName = reader.GetString(3),
+                MemberEmail = reader.GetString(4),
+                CategoryId = reader.GetInt32(5),
+                CategoryName = reader.GetString(6),
+                Description = reader.GetString(7),
+                Amount = reader.GetDouble(8),
+                Date = reader.GetString(9)
+            });
+        }
+
+        return expenses;
+    }
+
+    public List<FamilyBudgetCategorySummary> GetFamilyBudgetOverview(int familyId)
+    {
+        var summaries = new List<FamilyBudgetCategorySummary>();
+
+        using var connection = GetConnection();
+        using var command = connection.CreateCommand();
+
+        command.CommandText = @"
+        SELECT MIN(Categories.name) AS categoryName,
+               COALESCE(SUM(Expenses.amount), 0) AS totalSpent,
+               COUNT(*) AS expenseCount,
+               COUNT(DISTINCT Expenses.userId) AS memberCount,
+               COALESCE(MAX(Expenses.date), '') AS latestExpenseDate
+        FROM Expenses
+        INNER JOIN FamilyMembers ON FamilyMembers.userId = Expenses.userId
+        INNER JOIN Categories ON Categories.userId = Expenses.userId
+            AND Categories.categoryId = Expenses.categoryId
+        WHERE FamilyMembers.familyId = $familyId
+        GROUP BY LOWER(Categories.name)
+        ORDER BY totalSpent DESC, categoryName ASC;
+        ";
+
+        command.Parameters.AddWithValue("$familyId", familyId);
+
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            summaries.Add(new FamilyBudgetCategorySummary
+            {
+                CategoryName = reader.GetString(0),
+                TotalSpent = reader.GetDouble(1),
+                ExpenseCount = reader.GetInt32(2),
+                MemberCount = reader.GetInt32(3),
+                LatestExpenseDate = reader.GetString(4)
+            });
+        }
+
+        return summaries;
+    }
+
+    private static bool IsAdminRole(string? role)
+    {
+        return string.Equals(role, "Owner", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
     }
 
     public void AddUserToFamily(int userId, int familyId, string role)
