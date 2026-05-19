@@ -984,7 +984,7 @@ public class DatabaseRepository
         using var connection = GetConnection();
         using var transaction = connection.BeginTransaction();
 
-        var activeGoals = new List<Goal>();
+        var goals = new List<Goal>();
         using (var command = connection.CreateCommand())
         {
             command.Transaction = transaction;
@@ -992,7 +992,6 @@ public class DatabaseRepository
             SELECT goalId, userId, name, targetAmount, createdAt, deadline, status
             FROM Goals
             WHERE userId = $userId
-              AND status = 'Active'
             ORDER BY deadline ASC;
             ";
 
@@ -1001,15 +1000,16 @@ public class DatabaseRepository
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
-                activeGoals.Add(ReadGoal(reader));
+                goals.Add(ReadGoal(reader));
             }
         }
 
-        foreach (var goal in activeGoals)
+        foreach (var goal in goals)
         {
             WithGoalSpending(connection, transaction, goal);
+            var previousStatus = goal.Status;
             var nextStatus = SpendingGoalService.EvaluateBudgetCapGoal(goal, goal.CurrentSpent, asOf ?? DateTime.Now);
-            if (nextStatus == GoalStatus.Active)
+            if (nextStatus == previousStatus)
             {
                 continue;
             }
@@ -1021,8 +1021,7 @@ public class DatabaseRepository
                 UPDATE Goals
                 SET status = $status
                 WHERE goalId = $goalId
-                  AND userId = $userId
-                  AND status = 'Active';
+                  AND userId = $userId;
                 ";
 
                 updateCommand.Parameters.AddWithValue("$status", nextStatus.ToString());
@@ -1035,7 +1034,10 @@ public class DatabaseRepository
                 }
             }
 
-            raisedEvents.Add(InsertGoalEvent(connection, transaction, goal, nextStatus, eventTime));
+            if (nextStatus != GoalStatus.Active)
+            {
+                raisedEvents.Add(InsertGoalEvent(connection, transaction, goal, nextStatus, eventTime));
+            }
         }
 
         transaction.Commit();

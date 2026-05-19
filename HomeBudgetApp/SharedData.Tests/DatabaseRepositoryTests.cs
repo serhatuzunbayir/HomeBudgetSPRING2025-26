@@ -141,6 +141,11 @@ public sealed class DatabaseRepositoryTests
         Assert.Equal(GoalStatus.Missed, missedGoal.Status);
         Assert.Contains(db.GetRecentGoalEvents(userId, 10), goalEvent =>
             goalEvent.GoalId == missedGoalId && goalEvent.Status == GoalStatus.Missed);
+
+        db.DeleteExpense(db.GetAllExpensesByUser(userId).Single(expense => expense.Description == "Hotel").ExpenseId, userId);
+
+        missedGoal = db.GetGoalsByUser(userId).Single(goal => goal.GoalId == missedGoalId);
+        Assert.Equal(GoalStatus.Active, missedGoal.Status);
     }
 
     private static DatabaseRepository CreateRepository()

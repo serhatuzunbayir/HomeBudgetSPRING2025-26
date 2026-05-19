@@ -6,11 +6,6 @@ public static class SpendingGoalService
 {
     public static GoalStatus EvaluateBudgetCapGoal(Goal goal, double currentSpent, DateTime asOf)
     {
-        if (goal.Status != GoalStatus.Active)
-        {
-            return goal.Status;
-        }
-
         if (currentSpent > goal.TargetAmount)
         {
             return GoalStatus.Missed;
