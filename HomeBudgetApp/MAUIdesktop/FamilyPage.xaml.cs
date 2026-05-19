@@ -15,6 +15,8 @@ public partial class FamilyPage : ContentPage
     private Family? _currentFamily;
     private bool _currentUserCanManageMembers;
 
+    public ObservableCollection<FamilyMemberViewModel> FamilyMembers => _members;
+    public ObservableCollection<FamilyInvitationViewModel> PendingInvitations => _invitations;
     public ObservableCollection<FamilyExpenseRowViewModel> FamilyExpenseRows => _familyExpenseRows;
     public ObservableCollection<FamilyBudgetSummaryViewModel> FamilyBudgetSummaryRows => _familyBudgetSummaryRows;
 
@@ -23,8 +25,6 @@ public partial class FamilyPage : ContentPage
         InitializeComponent();
         _db = AppDatabase.Instance;
         BindingContext = this;
-        MembersCollection.ItemsSource = _members;
-        InvitationsCollection.ItemsSource = _invitations;
     }
 
     protected override void OnAppearing()
@@ -219,6 +219,8 @@ public partial class FamilyPage : ContentPage
                 _invitations.Add(new FamilyInvitationViewModel(invitation));
             }
 
+            NoInvitationsLabel.IsVisible = _invitations.Count == 0;
+            NoMembersLabel.IsVisible = false;
             return;
         }
 
@@ -244,6 +246,8 @@ public partial class FamilyPage : ContentPage
                 _currentUserCanManageMembers && member.UserId != user.UserId));
         }
 
+        NoInvitationsLabel.IsVisible = false;
+        NoMembersLabel.IsVisible = _members.Count == 0;
         LoadFamilyExpenseFilterOptions(familyUsers);
         RefreshFamilyExpenseRows();
         RefreshFamilyBudgetOverview();

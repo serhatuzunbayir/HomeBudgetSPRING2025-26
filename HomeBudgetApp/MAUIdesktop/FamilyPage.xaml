@@ -67,9 +67,12 @@
 
                         <VerticalStackLayout Grid.Row="1" Spacing="10">
                             <Label Text="Pending Invitations" Style="{StaticResource SectionTitleStyle}" />
-                            <CollectionView x:Name="InvitationsCollection"
-                                            EmptyView="No pending invitations.">
-                                <CollectionView.ItemTemplate>
+                            <Label x:Name="NoInvitationsLabel"
+                                   Text="No pending invitations."
+                                   Style="{StaticResource MutedLabelStyle}" />
+                            <VerticalStackLayout Spacing="0"
+                                                 BindableLayout.ItemsSource="{Binding PendingInvitations}">
+                                <BindableLayout.ItemTemplate>
                                     <DataTemplate x:DataType="local:FamilyInvitationViewModel">
                                         <Grid Padding="0,10" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
                                             <VerticalStackLayout Spacing="2">
@@ -88,8 +91,8 @@
                                                     Style="{StaticResource SecondaryButtonStyle}" />
                                         </Grid>
                                     </DataTemplate>
-                                </CollectionView.ItemTemplate>
-                            </CollectionView>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
                         </VerticalStackLayout>
                     </Grid>
                 </Border>
@@ -129,9 +132,12 @@
 
                     <VerticalStackLayout Grid.Row="1" Spacing="12">
                         <Label Text="Family Members" Style="{StaticResource SectionTitleStyle}" />
-                        <CollectionView x:Name="MembersCollection"
-                                        EmptyView="No members yet.">
-                            <CollectionView.ItemTemplate>
+                        <Label x:Name="NoMembersLabel"
+                               Text="No members yet."
+                               Style="{StaticResource MutedLabelStyle}" />
+                        <VerticalStackLayout Spacing="0"
+                                             BindableLayout.ItemsSource="{Binding FamilyMembers}">
+                            <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="local:FamilyMemberViewModel">
                                     <Border Margin="0,0,0,10"
                                             Style="{StaticResource CardBorderStyle}">
@@ -154,8 +160,8 @@
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
 
                     <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
