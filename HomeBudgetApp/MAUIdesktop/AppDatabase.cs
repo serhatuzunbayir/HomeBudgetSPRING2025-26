@@ -4,9 +4,10 @@ namespace MAUIdesktop;
 
 public static class AppDatabase
 {
-    private static DatabaseRepository? _database;
+    private const string DefaultApiBaseAddress = "http://localhost:5225";
+    private static IDatabaseRepository? _database;
 
-    public static DatabaseRepository Instance
+    public static IDatabaseRepository Instance
     {
         get
         {
@@ -15,33 +16,22 @@ public static class AppDatabase
                 return _database;
             }
 
-            var databasePath = Path.Combine(FileSystem.AppDataDirectory, "AppDb.db");
-            Directory.CreateDirectory(Path.GetDirectoryName(databasePath)!);
-
-            if (!File.Exists(databasePath))
+            var apiBaseAddress = Environment.GetEnvironmentVariable("HOMEBUDGET_API_BASE_URL");
+            if (string.IsNullOrWhiteSpace(apiBaseAddress))
             {
-                TryCopySeedDatabase(databasePath);
+                apiBaseAddress = DefaultApiBaseAddress;
             }
 
-            _database = new DatabaseRepository(databasePath);
-
+            _database = new HttpDatabaseRepository(new HttpClient
+            {
+                BaseAddress = new Uri(NormalizeBaseAddress(apiBaseAddress))
+            });
             return _database;
         }
     }
 
-    private static void TryCopySeedDatabase(string databasePath)
+    private static string NormalizeBaseAddress(string baseAddress)
     {
-        try
-        {
-            var seedPath = SharedDatabasePath.GetPath();
-            if (File.Exists(seedPath))
-            {
-                File.Copy(seedPath, databasePath, overwrite: false);
-            }
-        }
-        catch
-        {
-            // MacCatalyst sandboxing can block source-tree access; the repository creates a fresh DB below.
-        }
+        return baseAddress.EndsWith('/') ? baseAddress : $"{baseAddress}/";
     }
 }

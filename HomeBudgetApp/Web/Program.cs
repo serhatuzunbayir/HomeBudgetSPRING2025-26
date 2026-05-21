@@ -10,9 +10,14 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
-builder.Services.AddSingleton<IDatabaseRepository>(_ =>
+builder.Services.AddSingleton(_ =>
 {
     return new DatabaseRepository(SharedDatabasePath.GetPath());
+});
+builder.Services.AddHttpClient<IDatabaseRepository, HttpDatabaseRepository>(client =>
+{
+    client.BaseAddress = new Uri(NormalizeBaseAddress(
+        builder.Configuration["Api:BaseAddress"] ?? "http://localhost:5225"));
 });
 
 var app = builder.Build();
@@ -33,8 +38,14 @@ app.UseRouting();
 app.UseSession();
 app.UseAuthorization();
 
+app.MapControllers();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Dashboard}/{action=Index}/{id?}");
 
 app.Run();
+
+static string NormalizeBaseAddress(string baseAddress)
+{
+    return baseAddress.EndsWith('/') ? baseAddress : $"{baseAddress}/";
+}
