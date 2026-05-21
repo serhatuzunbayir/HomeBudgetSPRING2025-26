@@ -2,7 +2,9 @@
 <ContentPage
     x:Class="MAUIdesktop.RegisterPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:MAUIdesktop"
+    x:DataType="local:RegisterViewModel">
 
     <ScrollView>
         <Grid Padding="36"
@@ -38,7 +40,8 @@
                     </Grid>
 
                     <Label x:Name="MessageLabel"
-                           TextColor="{StaticResource FinanceDanger}"
+                           Text="{Binding Message}"
+                           TextColor="{Binding MessageColor}"
                            HorizontalTextAlignment="Center"/>
                 </VerticalStackLayout>
             </Border>

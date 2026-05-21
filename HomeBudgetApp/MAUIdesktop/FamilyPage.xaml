@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:MAUIdesktop"
              x:Class="MAUIdesktop.FamilyPage"
+             x:DataType="local:FamilyViewModel"
              Title="Family">
 
     <Grid ColumnDefinitions="220,*">
@@ -37,7 +38,7 @@
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                     <VerticalStackLayout Spacing="4">
                         <Label Text="Family Management" Style="{StaticResource PageTitleStyle}" />
-                        <Label x:Name="FamilyStatusLabel" Style="{StaticResource MutedLabelStyle}" />
+                        <Label x:Name="FamilyStatusLabel" Text="{Binding FamilyStatusText}" Style="{StaticResource MutedLabelStyle}" />
                     </VerticalStackLayout>
 
                     <Button Grid.Column="1"
@@ -49,6 +50,7 @@
 
                 <Border x:Name="NoFamilyPanel"
                         Grid.Row="1"
+                        IsVisible="{Binding NoFamilyPanelVisible}"
                         Style="{StaticResource CardBorderStyle}">
                     <Grid RowDefinitions="Auto,Auto"
                           RowSpacing="20">
@@ -69,6 +71,7 @@
                             <Label Text="Pending Invitations" Style="{StaticResource SectionTitleStyle}" />
                             <Label x:Name="NoInvitationsLabel"
                                    Text="No pending invitations."
+                                   IsVisible="{Binding NoInvitationsVisible}"
                                    Style="{StaticResource MutedLabelStyle}" />
                             <VerticalStackLayout Spacing="0"
                                                  BindableLayout.ItemsSource="{Binding PendingInvitations}">
@@ -99,6 +102,7 @@
 
                 <Grid x:Name="FamilyWorkspace"
                       Grid.Row="1"
+                      IsVisible="{Binding FamilyWorkspaceVisible}"
                       RowDefinitions="Auto,Auto,Auto,Auto"
                       RowSpacing="18">
                     <Grid ColumnDefinitions="2*,*"
@@ -107,8 +111,10 @@
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
                                 <VerticalStackLayout Spacing="6">
                                     <Label x:Name="FamilyNameLabel"
+                                           Text="{Binding FamilyNameText}"
                                            Style="{StaticResource SectionTitleStyle}" />
                                     <Label x:Name="FamilyRoleLabel"
+                                           Text="{Binding FamilyRoleText}"
                                            Style="{StaticResource MutedLabelStyle}" />
                                     <Label Text="Admins can invite registered users and remove members when needed."
                                            Style="{StaticResource MutedLabelStyle}" />
@@ -118,9 +124,11 @@
                                                        VerticalOptions="Center">
                                     <Button x:Name="InviteButton"
                                             Text="Invite member"
+                                            IsVisible="{Binding InviteButtonVisible}"
                                             Clicked="OnInviteMemberClicked" />
                                     <Button x:Name="DeleteFamilyButton"
                                             Text="Delete family"
+                                            IsVisible="{Binding DeleteFamilyButtonVisible}"
                                             Clicked="OnDeleteFamilyClicked"
                                             Style="{StaticResource DangerButtonStyle}" />
                                 </HorizontalStackLayout>
@@ -140,6 +148,7 @@
                         <Label Text="Family Members" Style="{StaticResource SectionTitleStyle}" />
                         <Label x:Name="NoMembersLabel"
                                Text="No members yet."
+                               IsVisible="{Binding NoMembersVisible}"
                                Style="{StaticResource MutedLabelStyle}" />
                         <VerticalStackLayout Spacing="0"
                                              BindableLayout.ItemsSource="{Binding FamilyMembers}">
@@ -179,18 +188,25 @@
                                   RowSpacing="8">
                                 <Picker x:Name="FamilyMemberFilterPicker"
                                         Title="Member"
+                                        ItemsSource="{Binding FamilyMemberFilterOptions}"
+                                        SelectedItem="{Binding SelectedMemberFilter}"
                                         ItemDisplayBinding="{Binding Label}" />
                                 <Picker Grid.Column="1"
                                         x:Name="FamilyCategoryFilterPicker"
                                         Title="Category"
+                                        ItemsSource="{Binding FamilyCategoryFilterOptions}"
+                                        SelectedItem="{Binding SelectedCategoryFilter}"
                                         ItemDisplayBinding="{Binding Label}" />
                                 <HorizontalStackLayout Grid.Row="1"
                                                        Spacing="4"
                                                        VerticalOptions="Center">
                                     <CheckBox x:Name="FamilyExpenseUseStartDateCheckBox"
+                                              IsChecked="{Binding UseStartDate}"
                                               CheckedChanged="OnFamilyDateFilterChanged" />
                                     <Label Text="From" VerticalTextAlignment="Center" />
                                     <DatePicker x:Name="FamilyExpenseStartDatePicker"
+                                                Date="{Binding StartDate}"
+                                                IsEnabled="{Binding StartDateEnabled}"
                                                 Format="MMM d, yyyy"
                                                 DateSelected="OnFamilyDateSelected"
                                                 VerticalOptions="Center" />
@@ -200,9 +216,12 @@
                                                        Spacing="4"
                                                        VerticalOptions="Center">
                                     <CheckBox x:Name="FamilyExpenseUseEndDateCheckBox"
+                                              IsChecked="{Binding UseEndDate}"
                                               CheckedChanged="OnFamilyDateFilterChanged" />
                                     <Label Text="To" VerticalTextAlignment="Center" />
                                     <DatePicker x:Name="FamilyExpenseEndDatePicker"
+                                                Date="{Binding EndDate}"
+                                                IsEnabled="{Binding EndDateEnabled}"
                                                 Format="MMM d, yyyy"
                                                 DateSelected="OnFamilyDateSelected"
                                                 VerticalOptions="Center" />
@@ -217,6 +236,7 @@
                                         Style="{StaticResource SecondaryButtonStyle}" />
                             </HorizontalStackLayout>
                             <Label x:Name="FamilyExpensesCaptionLabel"
+                                   Text="{Binding FamilyExpensesCaption}"
                                    Style="{StaticResource MutedLabelStyle}" />
                             <VerticalStackLayout Spacing="0"
                                                  BindableLayout.ItemsSource="{Binding FamilyExpenseRows}">
@@ -243,16 +263,19 @@
 
                     <Border x:Name="FamilyBudgetOverviewPanel"
                             Grid.Row="3"
+                            IsVisible="{Binding FamilyBudgetOverviewVisible}"
                             Style="{StaticResource CardBorderStyle}">
                         <VerticalStackLayout Spacing="12">
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                 <VerticalStackLayout Spacing="2">
                                     <Label Text="Family Budget Overview" Style="{StaticResource SectionTitleStyle}" />
                                     <Label x:Name="FamilyBudgetOverviewCaptionLabel"
+                                           Text="{Binding FamilyBudgetOverviewCaption}"
                                            Style="{StaticResource MutedLabelStyle}" />
                                 </VerticalStackLayout>
                                 <Label Grid.Column="1"
                                        x:Name="FamilyBudgetOverviewTotalLabel"
+                                       Text="{Binding FamilyBudgetOverviewTotal}"
                                        Style="{StaticResource MetricValueStyle}"
                                        TextColor="{StaticResource FinanceDanger}"
                                        VerticalTextAlignment="Center" />

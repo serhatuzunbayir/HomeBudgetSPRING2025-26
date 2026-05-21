@@ -11,7 +11,7 @@ public static class AppSession
         CurrentUser = user;
     }
 
-    public static void RefreshUser(DatabaseRepository database)
+    public static void RefreshUser(IDatabaseRepository database)
     {
         if (CurrentUser is null)
         {

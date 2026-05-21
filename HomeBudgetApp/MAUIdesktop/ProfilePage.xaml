@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:MAUIdesktop"
              x:Class="MAUIdesktop.ProfilePage"
+             x:DataType="local:ProfileViewModel"
              Title="Profile">
 
     <ScrollView>
@@ -25,21 +27,21 @@
                     <Border Style="{StaticResource SoftPanelStyle}">
                         <VerticalStackLayout Spacing="4">
                             <Label Text="Email" Style="{StaticResource MutedLabelStyle}" />
-                            <Label x:Name="EmailLabel" FontSize="16" FontAttributes="Bold" />
+                            <Label x:Name="EmailLabel" Text="{Binding Email}" FontSize="16" FontAttributes="Bold" />
                         </VerticalStackLayout>
                     </Border>
 
                     <VerticalStackLayout Spacing="6">
                         <Label Text="Name" Style="{StaticResource MutedLabelStyle}" />
-                        <Entry x:Name="NameEntry" Placeholder="Enter your name" />
+                        <Entry x:Name="NameEntry" Text="{Binding Name}" Placeholder="Enter your name" />
                     </VerticalStackLayout>
 
                     <VerticalStackLayout Spacing="6">
                         <Label Text="New password" Style="{StaticResource MutedLabelStyle}" />
-                        <Entry x:Name="PasswordEntry" Placeholder="Leave unchanged to keep current password" IsPassword="True" />
+                        <Entry x:Name="PasswordEntry" Text="{Binding Password}" Placeholder="Leave unchanged to keep current password" IsPassword="True" />
                     </VerticalStackLayout>
 
-                    <Label x:Name="MessageLabel" Style="{StaticResource MutedLabelStyle}" />
+                    <Label x:Name="MessageLabel" Text="{Binding Message}" TextColor="{Binding MessageColor}" Style="{StaticResource MutedLabelStyle}" />
 
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
                         <Button Text="Back" Clicked="OnBackClicked" Style="{StaticResource SecondaryButtonStyle}" />

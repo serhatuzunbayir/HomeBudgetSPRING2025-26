@@ -1,55 +1,26 @@
-﻿using SharedData;
-
 namespace MAUIdesktop;
 
 public partial class LoginPage : ContentPage
 {
-    private readonly DatabaseRepository _db;
+    private readonly LoginViewModel _viewModel;
 
     public LoginPage()
     {
         InitializeComponent();
 
-        _db = AppDatabase.Instance;
+        _viewModel = new LoginViewModel(
+            new DesktopAccountService(AppDatabase.Instance),
+            new ShellNavigationService());
+        BindingContext = _viewModel;
     }
 
     private async void OnLoginClicked(object sender, EventArgs e)
     {
-        MessageLabel.TextColor = Colors.Red;
-
-        var email = (EmailEntry.Text ?? "").Trim().ToLowerInvariant();
-        var password = PasswordEntry.Text ?? "";
-
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-        {
-            MessageLabel.Text = "Email and password are required";
-            return;
-        }
-
-        var user = _db.GetUserByEmail(email);
-
-        if (user == null)
-        {
-            MessageLabel.Text = "User not found";
-            return;
-        }
-
-        if (user.Password != password)
-        {
-            MessageLabel.Text = "Wrong password";
-            return;
-        }
-
-        MessageLabel.TextColor = Colors.Green;
-        MessageLabel.Text = $"Welcome {user.Name}";
-
-        AppSession.SignIn(user);
-
-        await Shell.Current.GoToAsync("//MainPage");
+        await _viewModel.LoginAsync(EmailEntry.Text, PasswordEntry.Text);
     }
 
     private async void OnGoRegisterClicked(object sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync(nameof(RegisterPage));
+        await _viewModel.OpenRegisterAsync();
     }
 }

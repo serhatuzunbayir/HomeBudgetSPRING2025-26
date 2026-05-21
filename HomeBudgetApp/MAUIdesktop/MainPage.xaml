@@ -4,6 +4,7 @@
              xmlns:local="clr-namespace:MAUIdesktop"
              x:Class="MAUIdesktop.MainPage"
              x:Name="RootPage"
+             x:DataType="local:DashboardViewModel"
              Title="My Budget">
 
     <Grid ColumnDefinitions="220,*">
@@ -46,6 +47,7 @@
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                     <VerticalStackLayout Spacing="4">
                         <Label x:Name="WelcomeLabel"
+                               Text="{Binding WelcomeText}"
                                Style="{StaticResource PageTitleStyle}" />
                         <Label Text="Track spending, category limits, alerts, goals, and family budget activity."
                                Style="{StaticResource MutedLabelStyle}" />
@@ -63,7 +65,7 @@
                     <Border Style="{StaticResource CardBorderStyle}">
                         <VerticalStackLayout Spacing="6">
                             <Label Text="Total Budget" Style="{StaticResource MutedLabelStyle}" />
-                            <Label x:Name="TotalBudgetLabel" Style="{StaticResource MetricValueStyle}" />
+                            <Label x:Name="TotalBudgetLabel" Text="{Binding TotalBudgetText}" Style="{StaticResource MetricValueStyle}" />
                             <Label Text="Allocated across categories" Style="{StaticResource MutedLabelStyle}" />
                         </VerticalStackLayout>
                     </Border>
@@ -71,7 +73,7 @@
                     <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}">
                         <VerticalStackLayout Spacing="6">
                             <Label Text="Total Spent" Style="{StaticResource MutedLabelStyle}" />
-                            <Label x:Name="TotalSpentLabel" Style="{StaticResource MetricValueStyle}" TextColor="{StaticResource FinanceDanger}" />
+                            <Label x:Name="TotalSpentLabel" Text="{Binding TotalSpentText}" Style="{StaticResource MetricValueStyle}" TextColor="{StaticResource FinanceDanger}" />
                             <Label Text="All recorded expenses" Style="{StaticResource MutedLabelStyle}" />
                         </VerticalStackLayout>
                     </Border>
@@ -79,7 +81,7 @@
                     <Border Grid.Column="2" Style="{StaticResource CardBorderStyle}">
                         <VerticalStackLayout Spacing="6">
                             <Label Text="Remaining Budget" Style="{StaticResource MutedLabelStyle}" />
-                            <Label x:Name="RemainingBudgetLabel" Style="{StaticResource MetricValueStyle}" TextColor="{StaticResource FinanceSuccess}" />
+                            <Label x:Name="RemainingBudgetLabel" Text="{Binding RemainingBudgetText}" Style="{StaticResource MetricValueStyle}" TextColor="{StaticResource FinanceSuccess}" />
                             <Label Text="Available to spend" Style="{StaticResource MutedLabelStyle}" />
                         </VerticalStackLayout>
                     </Border>
@@ -87,7 +89,7 @@
                     <Border Grid.Column="3" Style="{StaticResource CardBorderStyle}">
                         <VerticalStackLayout Spacing="6">
                             <Label Text="This Month" Style="{StaticResource MutedLabelStyle}" />
-                            <Label x:Name="ThisMonthExpensesLabel" Style="{StaticResource MetricValueStyle}" />
+                            <Label x:Name="ThisMonthExpensesLabel" Text="{Binding ThisMonthExpensesText}" Style="{StaticResource MetricValueStyle}" />
                             <Label Text="Current month expenses" Style="{StaticResource MutedLabelStyle}" />
                         </VerticalStackLayout>
                     </Border>
@@ -101,13 +103,15 @@
                             <Label Text="Category Budget Status" Style="{StaticResource SectionTitleStyle}" />
                             <Label Grid.Column="1"
                                    x:Name="CategoryCountLabel"
+                                   Text="{Binding CategoryCountText}"
                                    Style="{StaticResource MutedLabelStyle}"
                                    VerticalTextAlignment="Center" />
                         </Grid>
 
                         <Label x:Name="NoCategoriesLabel"
                                Text="No categories yet. Add one to start tracking your expenses."
-                               Style="{StaticResource MutedLabelStyle}" />
+                               Style="{StaticResource MutedLabelStyle}"
+                               IsVisible="{Binding NoCategoriesVisible}" />
 
                         <VerticalStackLayout Spacing="14"
                                              BindableLayout.ItemsSource="{Binding CategoryCards}">
@@ -204,7 +208,7 @@
                             <VerticalStackLayout Spacing="8">
                                 <Label Text="Analytics" Style="{StaticResource SectionTitleStyle}" />
                                 <Label Text="Monthly Average" Style="{StaticResource MutedLabelStyle}" />
-                                <Label x:Name="MonthlyAverageLabel" Style="{StaticResource MetricValueStyle}" />
+                                <Label x:Name="MonthlyAverageLabel" Text="{Binding MonthlyAverageText}" Style="{StaticResource MetricValueStyle}" />
                                 <Label Text="Real-time summaries are calculated from your stored expenses." Style="{StaticResource MutedLabelStyle}" />
                             </VerticalStackLayout>
                         </Border>
@@ -217,13 +221,16 @@
                                       ColumnSpacing="8"
                                       RowSpacing="8">
                                     <Entry x:Name="GoalNameEntry"
+                                           Text="{Binding GoalName}"
                                            Placeholder="Goal name" />
                                     <Entry Grid.Column="1"
                                            x:Name="GoalTargetAmountEntry"
+                                           Text="{Binding GoalTargetAmount}"
                                            Placeholder="Max amount"
                                            Keyboard="Numeric" />
                                     <DatePicker Grid.Row="1"
                                                 x:Name="GoalDeadlineDatePicker"
+                                                Date="{Binding GoalDeadlineDate}"
                                                 Format="MMM d, yyyy"
                                                 VerticalOptions="Center" />
                                     <Button Grid.Row="1"
@@ -232,7 +239,7 @@
                                             Clicked="OnAddGoalClicked"
                                             VerticalOptions="Center" />
                                 </Grid>
-                                <Label x:Name="GoalsCaptionLabel" Style="{StaticResource MutedLabelStyle}" />
+                                <Label x:Name="GoalsCaptionLabel" Text="{Binding GoalsCaption}" Style="{StaticResource MutedLabelStyle}" />
                                 <VerticalStackLayout Spacing="8"
                                                      BindableLayout.ItemsSource="{Binding GoalCards}">
                                     <BindableLayout.ItemTemplate>
@@ -272,6 +279,7 @@
                             <VerticalStackLayout Spacing="10">
                                 <Label Text="Expense Summary by Category" Style="{StaticResource SectionTitleStyle}" />
                                 <Label x:Name="ExpenseSummaryCaptionLabel"
+                                       Text="{Binding ExpenseSummaryCaption}"
                                        Style="{StaticResource MutedLabelStyle}" />
                                 <VerticalStackLayout Spacing="0"
                                                      BindableLayout.ItemsSource="{Binding CategorySummaryCards}">
@@ -305,6 +313,8 @@
                             <VerticalStackLayout Spacing="10">
                                 <Label Text="Budget Alerts" Style="{StaticResource SectionTitleStyle}" />
                                 <Label x:Name="BudgetAlertsLabel"
+                                       Text="{Binding BudgetAlertsText}"
+                                       TextColor="{Binding BudgetAlertsTextColor}"
                                        Style="{StaticResource MutedLabelStyle}" />
                             </VerticalStackLayout>
                         </Border>
@@ -316,15 +326,20 @@
                                       ColumnSpacing="10">
                                     <Picker x:Name="ExpenseCategoryFilterPicker"
                                             Title="Filter by category"
+                                            ItemsSource="{Binding ExpenseFilterOptions}"
                                             ItemDisplayBinding="{Binding Label}"
+                                            SelectedItem="{Binding SelectedExpenseFilter}"
                                             SelectedIndexChanged="OnExpenseFilterChanged" />
                                     <Picker Grid.Column="1"
                                             x:Name="ExpenseSortPicker"
                                             Title="Sort expenses"
+                                            ItemsSource="{Binding ExpenseSortOptions}"
                                             ItemDisplayBinding="{Binding Label}"
+                                            SelectedItem="{Binding SelectedExpenseSort}"
                                             SelectedIndexChanged="OnExpenseFilterChanged" />
                                 </Grid>
                                 <Label x:Name="ExpenseExplorerCaptionLabel"
+                                       Text="{Binding ExpenseExplorerCaption}"
                                        Style="{StaticResource MutedLabelStyle}" />
                                 <VerticalStackLayout Spacing="0"
                                                      BindableLayout.ItemsSource="{Binding RecentExpenseRows}">
@@ -350,7 +365,7 @@
                         <Border Style="{StaticResource CardBorderStyle}">
                             <VerticalStackLayout Spacing="10">
                                 <Label Text="Goal Events" Style="{StaticResource SectionTitleStyle}" />
-                                <Label x:Name="GoalEventsCaptionLabel" Style="{StaticResource MutedLabelStyle}" />
+                                <Label x:Name="GoalEventsCaptionLabel" Text="{Binding GoalEventsCaption}" Style="{StaticResource MutedLabelStyle}" />
                                 <VerticalStackLayout Spacing="6"
                                                      BindableLayout.ItemsSource="{Binding GoalEventRows}">
                                     <BindableLayout.ItemTemplate>
@@ -368,7 +383,7 @@
                         <Border Style="{StaticResource CardBorderStyle}">
                             <VerticalStackLayout Spacing="8">
                                 <Label Text="Family Overview" Style="{StaticResource SectionTitleStyle}" />
-                                <Label x:Name="FamilyOverviewLabel" Style="{StaticResource MutedLabelStyle}" />
+                                <Label x:Name="FamilyOverviewLabel" Text="{Binding FamilyOverviewText}" Style="{StaticResource MutedLabelStyle}" />
                                 <Button Text="Open family workspace"
                                         Clicked="OnFamilyClicked"
                                         Style="{StaticResource SecondaryButtonStyle}" />

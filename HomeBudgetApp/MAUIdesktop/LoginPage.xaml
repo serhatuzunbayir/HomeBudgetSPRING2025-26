@@ -2,7 +2,9 @@
 <ContentPage
     x:Class="MAUIdesktop.LoginPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:MAUIdesktop"
+    x:DataType="local:LoginViewModel">
 
     <Grid ColumnDefinitions="1.1*,1.4*">
         <Grid BackgroundColor="{StaticResource FinanceSidebar}"
@@ -51,7 +53,8 @@
                     <Button Text="Create account" Clicked="OnGoRegisterClicked" Style="{StaticResource SecondaryButtonStyle}"/>
 
                     <Label x:Name="MessageLabel"
-                           TextColor="{StaticResource FinanceDanger}"
+                           Text="{Binding Message}"
+                           TextColor="{Binding MessageColor}"
                            HorizontalTextAlignment="Center"/>
                 </VerticalStackLayout>
             </Border>
