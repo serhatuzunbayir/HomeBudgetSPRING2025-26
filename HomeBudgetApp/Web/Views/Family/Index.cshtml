@@ -1,0 +1,203 @@
+@model FamilyPageViewModel
+@{
+    ViewData["Title"] = "Family";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1">Family Management</h1>
+        <p class="text-muted mb-0">Manage family access and shared spending visibility.</p>
+    </div>
+    <a asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-secondary">Personal dashboard</a>
+</div>
+
+@if (!Model.HasFamily)
+{
+    <div class="card card-body shadow-sm mb-4">
+        <h2 class="h5">No family workspace is connected yet.</h2>
+        <p class="text-muted">Create a household budget or accept a pending invitation to join shared expense tracking.</p>
+        <form asp-action="Create" method="post" class="row g-2">
+            <div class="col-md-8">
+                <input name="familyName" class="form-control" placeholder="Family name" />
+            </div>
+            <div class="col-md-4 d-grid">
+                <button type="submit" class="btn btn-primary">Create family</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card card-body shadow-sm">
+        <h2 class="h5">Pending Invitations</h2>
+        @if (Model.PendingInvitations.Count == 0)
+        {
+            <p class="text-muted mb-0">No pending invitations.</p>
+        }
+        @foreach (var invitation in Model.PendingInvitations)
+        {
+            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                <div>
+                    <div class="fw-bold">@invitation.FamilyName</div>
+                    <div class="text-muted small">@invitation.InvitedByDisplay</div>
+                </div>
+                <div class="d-flex gap-2">
+                    <form asp-action="AcceptInvitation" method="post">
+                        <input type="hidden" name="invitationId" value="@invitation.InvitationId" />
+                        <button type="submit" class="btn btn-success btn-sm">Accept</button>
+                    </form>
+                    <form asp-action="DeclineInvitation" method="post">
+                        <input type="hidden" name="invitationId" value="@invitation.InvitationId" />
+                        <button type="submit" class="btn btn-outline-secondary btn-sm">Decline</button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+    return;
+}
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card card-body shadow-sm mb-4">
+            <div class="d-flex justify-content-between gap-3">
+                <div>
+                    <h2 class="h5 mb-1">@Model.FamilyName</h2>
+                    <p class="text-muted mb-0">Your role: @Model.CurrentUserRole</p>
+                </div>
+                <div class="d-flex gap-2">
+                    @if (Model.CanManageMembers)
+                    {
+                        <form asp-action="Invite" method="post" class="d-flex gap-2">
+                            <input name="email" class="form-control form-control-sm" placeholder="user@example.com" />
+                            <button type="submit" class="btn btn-primary btn-sm">Invite</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-body shadow-sm mb-4">
+            <h2 class="h5">Family Members</h2>
+            @if (Model.Members.Count == 0)
+            {
+                <p class="text-muted mb-0">No members yet.</p>
+            }
+            @foreach (var member in Model.Members)
+            {
+                <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                    <div>
+                        <div class="fw-bold">@member.Name</div>
+                        <div class="text-muted small">@member.Email</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge text-bg-success">@member.Role</span>
+                        @if (member.CanRemove)
+                        {
+                            <form asp-action="RemoveMember" method="post">
+                                <input type="hidden" name="userId" value="@member.UserId" />
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="card card-body shadow-sm">
+            <h2 class="h5">Family Expenses</h2>
+            <form asp-action="Index" method="get" class="row g-2 mb-3">
+                <div class="col-md-6">
+                    <select name="memberUserId" class="form-select">
+                        @foreach (var option in Model.MemberFilterOptions)
+                        {
+                            <option value="@option.UserId" selected="@(option.UserId == Model.SelectedMemberUserId)">@option.Label</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <select name="categoryName" class="form-select">
+                        @foreach (var option in Model.CategoryFilterOptions)
+                        {
+                            <option value="@option.CategoryName" selected="@(option.CategoryName == Model.SelectedCategoryName)">@option.Label</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" name="useStartDate" value="true" checked="@Model.UseStartDate" />
+                        </div>
+                        <span class="input-group-text">From</span>
+                        <input name="startDate" type="date" class="form-control" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" name="useEndDate" value="true" checked="@Model.UseEndDate" />
+                        </div>
+                        <span class="input-group-text">To</span>
+                        <input name="endDate" type="date" class="form-control" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                    </div>
+                </div>
+                <div class="col-md-6 d-grid">
+                    <button type="submit" class="btn btn-outline-primary">Apply filters</button>
+                </div>
+                <div class="col-md-6 d-grid">
+                    <a asp-action="Index" class="btn btn-outline-secondary">Clear filters</a>
+                </div>
+            </form>
+
+            <p class="text-muted">@Model.ExpensesCaption</p>
+            @foreach (var row in Model.ExpenseRows)
+            {
+                <div class="d-flex justify-content-between border-bottom py-2">
+                    <div>
+                        <div class="fw-bold">@row.Description</div>
+                        <div class="text-muted small">@row.DetailDisplay</div>
+                    </div>
+                    <div class="fw-bold text-danger">@row.AmountDisplay</div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        @if (Model.CanManageMembers)
+        {
+            <div class="card card-body shadow-sm mb-4">
+                <h2 class="h5">Family Budget Overview</h2>
+                <div class="fs-4 fw-bold text-danger">@Model.BudgetOverviewTotal.ToString("C")</div>
+                <p class="text-muted">@Model.BudgetOverviewCaption</p>
+                @foreach (var summary in Model.BudgetSummaries)
+                {
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <div>
+                            <div class="fw-bold">@summary.CategoryName</div>
+                            <div class="text-muted small">@summary.DetailDisplay</div>
+                        </div>
+                        <div class="fw-bold text-danger">@summary.TotalSpentDisplay</div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="card card-body shadow-sm mb-4">
+                <h2 class="h5">Family Budget Overview</h2>
+                <p class="text-muted mb-0">@Model.BudgetOverviewCaption</p>
+            </div>
+        }
+
+        @if (Model.CanDeleteFamily)
+        {
+            <div class="card card-body border-danger shadow-sm">
+                <h2 class="h5 text-danger">Delete Family</h2>
+                <p class="text-muted">Type the family name to delete the workspace. Personal expenses stay in member accounts.</p>
+                <form asp-action="Delete" method="post">
+                    <input name="confirmationName" class="form-control mb-2" placeholder="@Model.FamilyName" />
+                    <button type="submit" class="btn btn-danger">Delete family</button>
+                </form>
+            </div>
+        }
+    </div>
+</div>

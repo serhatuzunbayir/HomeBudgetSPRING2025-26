@@ -1,0 +1,279 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1">Welcome, @Model.UserName</h1>
+        <p class="text-muted mb-0">Track spending, category limits, alerts, goals, and family budget activity.</p>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card card-body shadow-sm">
+            <div class="text-muted">Total Budget</div>
+            <div class="fs-4 fw-bold">@Model.TotalBudget.ToString("C")</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-body shadow-sm">
+            <div class="text-muted">Total Spent</div>
+            <div class="fs-4 fw-bold text-danger">@Model.TotalSpent.ToString("C")</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-body shadow-sm">
+            <div class="text-muted">Remaining Budget</div>
+            <div class="fs-4 fw-bold text-success">@Model.RemainingBudget.ToString("C")</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-body shadow-sm">
+            <div class="text-muted">This Month</div>
+            <div class="fs-4 fw-bold">@Model.ThisMonthExpenses.ToString("C")</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h2 class="h5 mb-0">Add Category</h2>
+            </div>
+            <div class="card-body">
+                <form asp-controller="Category" asp-action="Add" method="post" class="row g-2">
+                    <div class="col-md-4">
+                        <input name="name" class="form-control" placeholder="Category name" />
+                    </div>
+                    <div class="col-md-3">
+                        <input name="budget" class="form-control" placeholder="Budget" inputmode="decimal" />
+                    </div>
+                    <div class="col-md-3">
+                        <input name="warningThreshold" class="form-control" placeholder="Alert threshold" inputmode="decimal" />
+                    </div>
+                    <div class="col-md-2 d-grid">
+                        <button type="submit" class="btn btn-primary">Add</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <h2 class="h5">Category Budget Status <span class="text-muted">(@Model.CategoryCount)</span></h2>
+        @if (Model.Categories.Count == 0)
+        {
+            <p class="text-muted">No categories yet. Add one to start tracking your expenses.</p>
+        }
+
+        @foreach (var category in Model.Categories)
+        {
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between gap-3">
+                        <div>
+                            <h3 class="h5 mb-1">@category.Name</h3>
+                            <div class="fw-bold @category.StatusClass">@category.StatusDisplay</div>
+                            <div class="text-muted">@category.AlertThresholdDisplay</div>
+                        </div>
+                        <form asp-controller="Category" asp-action="Delete" method="post">
+                            <input type="hidden" name="categoryId" value="@category.CategoryId" />
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                        </form>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <div class="text-muted">Spent</div>
+                            <div class="fw-bold">@category.SpentDisplay</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-muted">Remaining</div>
+                            <div class="fw-bold">@category.RemainingDisplay</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-muted">Average</div>
+                            <div class="fw-bold">@category.MonthlyAverageDisplay</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mt-3">
+                        <form asp-controller="Expense" asp-action="Add" method="post" class="col-md-7">
+                            <input type="hidden" name="categoryId" value="@category.CategoryId" />
+                            <div class="input-group">
+                                <input name="description" class="form-control" placeholder="Expense description" />
+                                <input name="amount" class="form-control" placeholder="Amount" inputmode="decimal" />
+                                <button type="submit" class="btn btn-outline-primary">Add expense</button>
+                            </div>
+                        </form>
+                        <form asp-controller="Category" asp-action="UpdateAlert" method="post" class="col-md-5">
+                            <input type="hidden" name="categoryId" value="@category.CategoryId" />
+                            <div class="input-group">
+                                <input name="warningThreshold" class="form-control" placeholder="Alert threshold" value="@category.WarningThreshold" />
+                                <button type="submit" class="btn btn-outline-secondary">Save alert</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    @if (category.Expenses.Count == 0)
+                    {
+                        <p class="text-muted mt-3 mb-0">No expenses added yet.</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive mt-3">
+                            <table class="table table-sm align-middle mb-0">
+                                <tbody>
+                                @foreach (var expense in category.Expenses)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">@expense.Description</div>
+                                            <div class="text-muted small">@expense.Date</div>
+                                        </td>
+                                        <td class="text-end text-danger fw-bold">@expense.AmountDisplay</td>
+                                        <td class="text-end">
+                                            <form asp-controller="Expense" asp-action="Delete" method="post">
+                                                <input type="hidden" name="expenseId" value="@expense.ExpenseId" />
+                                                <button type="submit" class="btn btn-outline-secondary btn-sm">Remove</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card card-body shadow-sm mb-3">
+            <h2 class="h5">Analytics</h2>
+            <div class="text-muted">Monthly Average</div>
+            <div class="fs-4 fw-bold">@Model.MonthlyAverage.ToString("C")</div>
+        </div>
+
+        <div class="card card-body shadow-sm mb-3">
+            <h2 class="h5">Spending Goals</h2>
+            <form asp-controller="Goal" asp-action="Add" method="post" class="row g-2 mb-3">
+                <div class="col-12">
+                    <input name="name" class="form-control" placeholder="Goal name" />
+                </div>
+                <div class="col-6">
+                    <input name="targetAmount" class="form-control" placeholder="Max amount" inputmode="decimal" />
+                </div>
+                <div class="col-6">
+                    <input name="deadline" class="form-control" type="date" value="@DateTime.Today.AddMonths(1).ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-12 d-grid">
+                    <button type="submit" class="btn btn-primary">Add goal</button>
+                </div>
+            </form>
+            <p class="text-muted">@Model.GoalsCaption</p>
+            @foreach (var goal in Model.Goals)
+            {
+                <div class="border rounded p-2 mb-2">
+                    <div class="d-flex justify-content-between gap-2">
+                        <div>
+                            <div class="fw-bold">@goal.Name</div>
+                            <div class="text-muted small">@goal.DeadlineDisplay</div>
+                        </div>
+                        <form asp-controller="Goal" asp-action="Delete" method="post">
+                            <input type="hidden" name="goalId" value="@goal.GoalId" />
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">Delete</button>
+                        </form>
+                    </div>
+                    <div class="progress my-2" role="progressbar" aria-valuenow="@goal.ProgressPercent" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar" style="width:@goal.ProgressPercent%"></div>
+                    </div>
+                    <div class="text-muted small">@goal.ProgressDisplay</div>
+                    <div class="fw-bold">@goal.StatusDisplay</div>
+                </div>
+            }
+        </div>
+
+        <div class="card card-body shadow-sm mb-3">
+            <h2 class="h5">Expense Summary by Category</h2>
+            <p class="text-muted">@Model.ExpenseSummaryCaption</p>
+            @foreach (var summary in Model.CategorySummaries)
+            {
+                <div class="d-flex justify-content-between border-bottom py-2">
+                    <div>
+                        <div class="fw-bold">@summary.CategoryName</div>
+                        <div class="text-muted small">@summary.ExpenseCountDisplay</div>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold">@summary.TotalSpentDisplay</div>
+                        <div class="text-muted small">@summary.MonthlyAverageDisplay</div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="card card-body shadow-sm mb-3">
+            <h2 class="h5">Budget Alerts</h2>
+            <p class="text-muted" style="white-space: pre-line">@Model.BudgetAlertsText</p>
+        </div>
+
+        <div class="card card-body shadow-sm mb-3">
+            <h2 class="h5">Expense Explorer</h2>
+            <form asp-controller="Dashboard" asp-action="Index" method="get" class="row g-2 mb-2">
+                <div class="col-6">
+                    <select name="categoryId" class="form-select">
+                        @foreach (var option in Model.CategoryFilterOptions)
+                        {
+                            <option value="@option.CategoryId" selected="@(option.CategoryId == Model.SelectedCategoryId)">@option.Label</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-6">
+                    <select name="sortOption" class="form-select">
+                        @foreach (var option in Model.SortOptions)
+                        {
+                            <option value="@option.SortOption" selected="@(option.SortOption == Model.SelectedSortOption)">@option.Label</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-12 d-grid">
+                    <button type="submit" class="btn btn-outline-primary">Apply</button>
+                </div>
+            </form>
+            <p class="text-muted">@Model.ExpenseExplorerCaption</p>
+            @foreach (var expense in Model.FilteredExpenses)
+            {
+                <div class="d-flex justify-content-between border-bottom py-2">
+                    <div>
+                        <div class="fw-bold">@expense.Description</div>
+                        <div class="text-muted small">@expense.Date</div>
+                    </div>
+                    <div class="fw-bold text-danger">@expense.AmountDisplay</div>
+                </div>
+            }
+        </div>
+
+        <div class="card card-body shadow-sm mb-3">
+            <h2 class="h5">Goal Events</h2>
+            @if (Model.GoalEvents.Count == 0)
+            {
+                <p class="text-muted mb-0">No goal events yet.</p>
+            }
+            @foreach (var goalEvent in Model.GoalEvents)
+            {
+                <div class="border-bottom py-2">
+                    <div class="fw-bold">@goalEvent.Message</div>
+                    <div class="text-muted small">@goalEvent.CreatedAt</div>
+                </div>
+            }
+        </div>
+
+        <div class="card card-body shadow-sm">
+            <h2 class="h5">Family Overview</h2>
+            <p class="text-muted">@Model.FamilyOverviewText</p>
+            <a asp-controller="Family" asp-action="Index" class="btn btn-outline-secondary">Open family workspace</a>
+        </div>
+    </div>
+</div>
