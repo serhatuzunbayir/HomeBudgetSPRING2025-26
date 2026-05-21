@@ -2,20 +2,6 @@ using System.Globalization;
 
 namespace SharedData;
 
-public enum ExpenseSortOption
-{
-    NewestFirst,
-    OldestFirst,
-    HighestAmount,
-    LowestAmount
-}
-
-public sealed class ExpenseQueryOptions
-{
-    public int? CategoryId { get; init; }
-    public ExpenseSortOption SortOption { get; init; } = ExpenseSortOption.NewestFirst;
-}
-
 public sealed class CategoryExpenseSummary
 {
     public int CategoryId { get; init; }

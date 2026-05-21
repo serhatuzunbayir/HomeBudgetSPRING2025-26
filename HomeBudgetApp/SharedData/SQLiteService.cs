@@ -3,7 +3,7 @@ using Microsoft.Data.Sqlite;
 
 namespace SharedData;
 
-public class DatabaseRepository
+public class DatabaseRepository : IDatabaseRepository
 {
     private readonly string _connectionString;
 
