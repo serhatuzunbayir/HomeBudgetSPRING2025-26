@@ -12,6 +12,7 @@ public sealed class DashboardController : AuthenticatedController
     }
 
     [HttpGet]
+    // Builds the complete dashboard view for the signed-in user.
     public IActionResult Index(int? categoryId, ExpenseSortOption sortOption = ExpenseSortOption.NewestFirst)
     {
         if (!TryGetCurrentUser(out var user))

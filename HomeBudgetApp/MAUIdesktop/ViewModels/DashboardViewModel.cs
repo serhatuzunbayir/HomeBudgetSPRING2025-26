@@ -87,6 +87,7 @@ public sealed class DashboardViewModel : ObservableObject
 
     public bool IsSignedIn => AppSession.CurrentUser is not null;
 
+    // Reloads all personal dashboard data after sign-in or a budget change.
     public void LoadDashboard()
     {
         var user = AppSession.CurrentUser;
@@ -201,6 +202,7 @@ public sealed class DashboardViewModel : ObservableObject
         }
     }
 
+    // Adds an expense and warns the user if it crosses a category alert threshold.
     public async Task AddExpenseAsync(CategoryCardViewModel category)
     {
         var user = AppSession.CurrentUser;
@@ -364,6 +366,7 @@ public sealed class DashboardViewModel : ObservableObject
         await _navigation.GoToAsync("//LoginPage");
     }
 
+    // Rebuilds the filtered expense list and category summary cards.
     public void RefreshExpenseInsights()
     {
         var selectedSort = SelectedExpenseSort;

@@ -287,6 +287,7 @@ public sealed class FamilyViewModel : ObservableObject
         LoadFamily();
     }
 
+    // Loads the current family workspace, members, invitations, and budget summary.
     public void LoadFamily()
     {
         var user = AppSession.CurrentUser;
@@ -352,6 +353,7 @@ public sealed class FamilyViewModel : ObservableObject
         RefreshFamilyBudgetOverview();
     }
 
+    // Applies the selected member, category, and date filters to family expenses.
     public void RefreshFamilyExpenseRows()
     {
         FamilyExpenseRows.Clear();

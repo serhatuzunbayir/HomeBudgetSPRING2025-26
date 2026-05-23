@@ -976,6 +976,7 @@ public class DatabaseRepository : IDatabaseRepository
         return goals.Select(goal => WithGoalSpending(connection, goal)).ToList();
     }
 
+    // Updates goal statuses and records milestone events in one transaction.
     public List<GoalEvent> EvaluateGoalsForUser(int userId, DateTime? asOf = null)
     {
         var eventTime = ToDbDate(asOf ?? DateTime.Now);
@@ -1309,6 +1310,7 @@ public class DatabaseRepository : IDatabaseRepository
         return categoryNames;
     }
 
+    // Returns family expenses with optional filters for member, category, and date range.
     public List<FamilyExpenseRow> GetFamilyExpenseRows(int familyId, FamilyExpenseQuery? query = null)
     {
         query ??= new FamilyExpenseQuery();
@@ -1385,6 +1387,7 @@ public class DatabaseRepository : IDatabaseRepository
         return expenses;
     }
 
+    // Groups all family member spending by category name for the shared overview.
     public List<FamilyBudgetCategorySummary> GetFamilyBudgetOverview(int familyId)
     {
         var summaries = new List<FamilyBudgetCategorySummary>();
@@ -1565,6 +1568,7 @@ public class DatabaseRepository : IDatabaseRepository
         return invitations;
     }
 
+    // Moves a pending invitation into membership and closes other pending invites.
     public void AcceptFamilyInvitation(int invitationId, int invitedUserId, string role = "Member")
     {
         using var connection = GetConnection();

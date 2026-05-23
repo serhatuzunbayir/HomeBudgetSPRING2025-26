@@ -4,6 +4,7 @@ namespace SharedData;
 
 public static class SpendingGoalService
 {
+    // Decides whether a spending cap goal is still active, reached, or missed.
     public static GoalStatus EvaluateBudgetCapGoal(Goal goal, double currentSpent, DateTime asOf)
     {
         if (currentSpent > goal.TargetAmount)
@@ -16,6 +17,7 @@ public static class SpendingGoalService
             : GoalStatus.Active;
     }
 
+    // Creates the text shown when a goal changes status.
     public static string BuildEventMessage(Goal goal, GoalStatus status)
     {
         return status switch
@@ -26,6 +28,7 @@ public static class SpendingGoalService
         };
     }
 
+    // Reads database date strings while keeping the expected yyyy-MM-dd format first.
     public static DateTime ParseDate(string value)
     {
         return DateTime.TryParseExact(
@@ -38,6 +41,7 @@ public static class SpendingGoalService
             : DateTime.Parse(value, CultureInfo.InvariantCulture);
     }
 
+    // Stores dates in the same format used by the database and UI.
     public static string FormatDate(DateTime value)
     {
         return value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
