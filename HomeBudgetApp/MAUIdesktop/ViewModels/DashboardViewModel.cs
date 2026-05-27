@@ -103,6 +103,7 @@ public sealed class DashboardViewModel : ObservableObject
             return;
         }
 
+        // Keep the user's selected filters after the dashboard reloads.
         var selectedCategoryId = SelectedExpenseFilter?.CategoryId;
         var selectedSortOption = SelectedExpenseSort?.SortOption ?? ExpenseSortOption.NewestFirst;
 
@@ -116,16 +117,19 @@ public sealed class DashboardViewModel : ObservableObject
             .OrderBy(category => category.Name)
             .ToList();
         _allExpenses = _database.GetAllExpensesByUser(user.UserId);
+        // Group expenses once so each category card can find its rows quickly.
         var expenses = _allExpenses
             .GroupBy(expense => expense.CategoryId)
             .ToDictionary(group => group.Key, group => group.ToList());
 
+        // Rebuild the visible category cards from the latest database values.
         foreach (var category in _allCategories)
         {
             expenses.TryGetValue(category.CategoryId, out var categoryExpenses);
             CategoryCards.Add(new CategoryCardViewModel(category, categoryExpenses ?? new List<Expense>()));
         }
 
+        // Active alerts control both the alert text and its warning color.
         var activeAlerts = BudgetAlertService.GetActiveAlerts(CategoryCards.Select(category => category.Category));
         WelcomeText = $"Welcome, {user.Name}";
         CategoryCountText = CategoryCards.Count.ToString();
@@ -177,6 +181,7 @@ public sealed class DashboardViewModel : ObservableObject
             return;
         }
 
+        // Suggest 20 percent of the budget as a starter alert threshold.
         var thresholdText = await _dialogs.PromptAsync(
             "New category",
             "Alert threshold for remaining budget (optional)",
@@ -224,6 +229,7 @@ public sealed class DashboardViewModel : ObservableObject
             return;
         }
 
+        // Compare the category before and after the expense to detect threshold crossings.
         var previousCategory = _database.GetCategory(category.CategoryId, user.UserId);
         _database.AddExpense(user.UserId, category.CategoryId, description, amount, DateTime.Now.ToString("yyyy-MM-dd"));
         var updatedCategory = _database.GetCategory(category.CategoryId, user.UserId);

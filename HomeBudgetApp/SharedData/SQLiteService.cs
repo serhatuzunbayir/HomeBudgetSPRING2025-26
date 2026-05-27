@@ -983,8 +983,10 @@ public class DatabaseRepository : IDatabaseRepository
         var raisedEvents = new List<GoalEvent>();
 
         using var connection = GetConnection();
+        // The transaction keeps status updates and event inserts together.
         using var transaction = connection.BeginTransaction();
 
+        // Load goals first so each one can be evaluated with current spending.
         var goals = new List<Goal>();
         using (var command = connection.CreateCommand())
         {
@@ -1009,6 +1011,7 @@ public class DatabaseRepository : IDatabaseRepository
         {
             WithGoalSpending(connection, transaction, goal);
             var previousStatus = goal.Status;
+            // Only changed statuses need a database update or event row.
             var nextStatus = SpendingGoalService.EvaluateBudgetCapGoal(goal, goal.CurrentSpent, asOf ?? DateTime.Now);
             if (nextStatus == previousStatus)
             {
@@ -1315,6 +1318,7 @@ public class DatabaseRepository : IDatabaseRepository
     {
         query ??= new FamilyExpenseQuery();
         var expenses = new List<FamilyExpenseRow>();
+        // Start with the family scope, then append filters selected by the user.
         var conditions = new List<string> { "FamilyMembers.familyId = $familyId" };
 
         using var connection = GetConnection();
@@ -1367,6 +1371,7 @@ public class DatabaseRepository : IDatabaseRepository
         ";
 
         using var reader = command.ExecuteReader();
+        // Each result row joins expense details with the member who made it.
         while (reader.Read())
         {
             expenses.Add(new FamilyExpenseRow

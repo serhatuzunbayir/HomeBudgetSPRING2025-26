@@ -301,6 +301,7 @@ public sealed class FamilyViewModel : ObservableObject
             return;
         }
 
+        // A null family means this user can only create one or answer invitations.
         _currentFamily = _database.GetFamilyByUser(user.UserId);
 
         if (_currentFamily is null)
@@ -312,6 +313,7 @@ public sealed class FamilyViewModel : ObservableObject
             FamilyWorkspaceVisible = false;
             FamilyBudgetOverviewVisible = false;
 
+            // Show pending invites even before the user joins a family workspace.
             foreach (var invitation in _database.GetPendingFamilyInvitations(user.UserId))
             {
                 PendingInvitations.Add(new FamilyInvitationViewModel(invitation));
@@ -322,6 +324,7 @@ public sealed class FamilyViewModel : ObservableObject
             return;
         }
 
+        // Member roles decide which management buttons are visible.
         var familyUsers = _database.GetFamilyUsers(_currentFamily.FamilyId);
         var currentMember = familyUsers.FirstOrDefault(member => member.UserId == user.UserId);
 
@@ -336,6 +339,7 @@ public sealed class FamilyViewModel : ObservableObject
         FamilyWorkspaceVisible = true;
         FamilyBudgetOverviewVisible = _currentUserCanManageMembers;
 
+        // Convert database members into UI rows with per-member remove access.
         foreach (var member in familyUsers)
         {
             FamilyMembers.Add(new FamilyMemberViewModel(
@@ -370,6 +374,7 @@ public sealed class FamilyViewModel : ObservableObject
             return;
         }
 
+        // The query mirrors the active filter controls in the family page.
         var query = new FamilyExpenseQuery
         {
             MemberUserId = SelectedMemberFilter?.UserId,
@@ -379,6 +384,7 @@ public sealed class FamilyViewModel : ObservableObject
         };
 
         var rows = _database.GetFamilyExpenseRows(_currentFamily.FamilyId, query);
+        // Replace the displayed rows so stale filter results are not kept.
         foreach (var row in rows.Select(row => new FamilyExpenseRowViewModel(row)))
         {
             FamilyExpenseRows.Add(row);
